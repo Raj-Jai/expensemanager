@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Śledź swoje wydatki</string>
     <string name="welcome_message_description">Bądź na bieżąco i miej rejestr swoich wydatków</string>
-    <string name="privacy_text">Wszystkie Twoje dane są przechowywane na Twoim urządzeniu, z opcją zewnętrznej kopii zapasowej. Kontynuując, akceptujesz naszą politykę prywatności.</string>
+    <string name="privacy_text">Wszystkie Twoje dane są przechowywane na Twoim urządzeniu, z opcją zewnętrznej kopii zapasowej. Kontynuując, akceptujesz naszą %1$s.</string>
+    <string name="privacy_policy_link">politykę prywatności</string>
     <string name="currency">Waluta</string>
     <string name="select_main_currency">Wybierz walutę główną</string>
     <string name="add_new">Dodaj nowe</string>

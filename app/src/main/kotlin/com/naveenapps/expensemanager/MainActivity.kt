@@ -102,7 +102,10 @@ internal class MainActivity : AppCompatActivity(), AndroidScopeComponent {
                 }
             }
         }
+    }
 
+    override fun onStart() {
+        super.onStart()
         launchAppUpdateCheck()
     }
 

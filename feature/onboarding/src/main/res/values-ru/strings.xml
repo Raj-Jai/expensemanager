@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Отслеживайте свои расходы</string>
     <string name="welcome_message_description">Будьте в курсе и ведите учёт своих расходов</string>
-    <string name="privacy_text">Все ваши данные хранятся на устройстве с возможностью внешнего резервного копирования. Продолжая, вы соглашаетесь с нашей политикой конфиденциальности.</string>
+    <string name="privacy_text">Все ваши данные хранятся на устройстве с возможностью внешнего резервного копирования. Продолжая, вы соглашаетесь с нашей %1$s.</string>
+    <string name="privacy_policy_link">политикой конфиденциальности</string>
     <string name="currency">Валюта</string>
     <string name="select_main_currency">Выберите основную валюту</string>
     <string name="add_new">Добавить</string>

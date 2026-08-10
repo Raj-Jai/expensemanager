@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Theo dõi chi tiêu của bạn</string>
     <string name="welcome_message_description">Nắm rõ và lưu lại chi tiêu của bạn</string>
-    <string name="privacy_text">Toàn bộ dữ liệu của bạn được lưu trữ trên thiết bị, với tùy chọn sao lưu bên ngoài. Bằng việc tiếp tục, bạn đồng ý với chính sách bảo mật của chúng tôi.</string>
+    <string name="privacy_text">Toàn bộ dữ liệu của bạn được lưu trữ trên thiết bị, với tùy chọn sao lưu bên ngoài. Bằng việc tiếp tục, bạn đồng ý với %1$s của chúng tôi.</string>
+    <string name="privacy_policy_link">chính sách bảo mật</string>
     <string name="currency">Tiền tệ</string>
     <string name="select_main_currency">Chọn tiền tệ chính</string>
     <string name="add_new">Thêm mới</string>

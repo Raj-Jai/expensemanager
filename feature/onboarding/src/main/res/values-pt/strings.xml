@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Acompanhe os seus gastos</string>
     <string name="welcome_message_description">Mantenha-se informado e tenha um registo dos seus gastos</string>
-    <string name="privacy_text">Todos os seus dados são armazenados no seu dispositivo, com a opção de cópia de segurança externa. Ao continuar, concorda com a nossa política de privacidade.</string>
+    <string name="privacy_text">Todos os seus dados são armazenados no seu dispositivo, com a opção de cópia de segurança externa. Ao continuar, concorda com a nossa %1$s.</string>
+    <string name="privacy_policy_link">política de privacidade</string>
     <string name="currency">Moeda</string>
     <string name="select_main_currency">Selecionar moeda principal</string>
     <string name="add_new">Adicionar novo</string>

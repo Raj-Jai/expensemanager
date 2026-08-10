@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">تتبع إنفاقك</string>
     <string name="welcome_message_description">كن على اطلاع واحتفظ بسجل لمصروفاتك</string>
-    <string name="privacy_text">تُخزَّن جميع بياناتك على جهازك مع إمكانية النسخ الاحتياطي الخارجي. بالمتابعة، فإنك توافق على سياسة الخصوصية الخاصة بنا.</string>
+    <string name="privacy_text">تُخزَّن جميع بياناتك على جهازك مع إمكانية النسخ الاحتياطي الخارجي. بالمتابعة، فإنك توافق على %1$s الخاصة بنا.</string>
+    <string name="privacy_policy_link">سياسة الخصوصية</string>
     <string name="currency">العملة</string>
     <string name="select_main_currency">اختيار العملة الرئيسية</string>
     <string name="add_new">إضافة جديد</string>

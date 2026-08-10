@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Category
-import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +48,10 @@ import com.naveenapps.designsystem.utils.AppPreviewsLightAndDarkMode
 import com.naveenapps.expensemanager.core.repository.ShareRepository
 import com.naveenapps.expensemanager.feature.onboarding.R
 import org.koin.compose.viewmodel.koinViewModel
+
+// Matches the literal %1$s placeholder left in privacy_text when it's read via stringResource()
+// with no format args (Android only substitutes format specifiers when args are supplied).
+private const val LINK_PLACEHOLDER = "%1\$s"
 
 @Composable
 fun IntroScreen(
@@ -123,7 +127,7 @@ private fun ScaffoldContent(
                         label = stringResource(R.string.organize)
                     )
                     FeatureChip(
-                        icon = Icons.Rounded.TrendingUp,
+                        icon = Icons.AutoMirrored.Rounded.TrendingUp,
                         label = stringResource(R.string.grow)
                     )
                 }
@@ -183,24 +187,45 @@ private fun ScaffoldContent(
                 Text(
                     modifier = Modifier.padding(bottom = 24.dp),
                     text = buildAnnotatedString {
-                        val text = stringResource(id = R.string.privacy_text)
-                        append(text)
-                        addLink(
-                            url = LinkAnnotation.Url(
-                                url = "",
-                                linkInteractionListener = {
-                                    shareRepository?.openPrivacy()
-                                },
-                                styles = TextLinkStyles(
-                                    style = SpanStyle(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Medium,
+                        // privacy_text carries a %1$s placeholder for the "privacy policy" phrase
+                        // (privacy_policy_link), rather than an <annotation> tag read back via
+                        // Resources.getText()/Spanned. That approach worked at first launch but
+                        // proved unreliable after an in-app locale switch — the surrounding text
+                        // re-translated correctly (plain stringResource() always does), but the
+                        // Annotation span itself sometimes came back missing, leaving the link
+                        // neither highlighted nor clickable. Splitting a plain, unformatted
+                        // stringResource() on a literal placeholder avoids Spanned/Annotation
+                        // entirely and stays consistent with how the rest of the string updates.
+                        val template = stringResource(id = R.string.privacy_text)
+                        val linkText = stringResource(id = R.string.privacy_policy_link)
+                        val placeholderIndex = template.indexOf(LINK_PLACEHOLDER)
+
+                        if (placeholderIndex >= 0) {
+                            append(template.substring(0, placeholderIndex))
+                            val start = length
+                            append(linkText)
+                            val end = length
+                            append(template.substring(placeholderIndex + LINK_PLACEHOLDER.length))
+
+                            addLink(
+                                url = LinkAnnotation.Url(
+                                    url = "",
+                                    linkInteractionListener = {
+                                        shareRepository?.openPrivacy()
+                                    },
+                                    styles = TextLinkStyles(
+                                        style = SpanStyle(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
                                     ),
                                 ),
-                            ),
-                            start = text.indexOf("privacy policy"),
-                            end = text.length - 1,
-                        )
+                                start = start,
+                                end = end,
+                            )
+                        } else {
+                            append(template)
+                        }
                     },
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,

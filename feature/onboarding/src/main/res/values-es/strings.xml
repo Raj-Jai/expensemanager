@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Controla tus gastos</string>
     <string name="welcome_message_description">Mantente informado y lleva un registro de tus gastos</string>
-    <string name="privacy_text">Todos tus datos se almacenan en tu dispositivo, con opción de copia de seguridad externa. Al continuar, aceptas nuestra política de privacidad.</string>
+    <string name="privacy_text">Todos tus datos se almacenan en tu dispositivo, con opción de copia de seguridad externa. Al continuar, aceptas nuestra %1$s.</string>
+    <string name="privacy_policy_link">política de privacidad</string>
     <string name="currency">Moneda</string>
     <string name="select_main_currency">Seleccionar moneda principal</string>
     <string name="add_new">Añadir nuevo</string>

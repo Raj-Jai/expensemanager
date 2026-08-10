@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">支出を記録しましょう</string>
     <string name="welcome_message_description">支出を把握し、記録を残しましょう</string>
-    <string name="privacy_text">すべてのデータは端末内に保存され、外部バックアップも選択できます。続行することで、プライバシーポリシーに同意したものとみなされます。</string>
+    <string name="privacy_text">すべてのデータは端末内に保存され、外部バックアップも選択できます。続行することで、%1$sに同意したものとみなされます。</string>
+    <string name="privacy_policy_link">プライバシーポリシー</string>
     <string name="currency">通貨</string>
     <string name="select_main_currency">メイン通貨を選択</string>
     <string name="add_new">新規追加</string>

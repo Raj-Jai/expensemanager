@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Harcamalarınızı takip edin</string>
     <string name="welcome_message_description">Harcamalarınızdan haberdar olun ve kaydını tutun</string>
-    <string name="privacy_text">Tüm verileriniz, isteğe bağlı harici yedekleme seçeneğiyle cihazınızda saklanır. Devam ederek gizlilik politikamızı kabul etmiş olursunuz.</string>
+    <string name="privacy_text">Tüm verileriniz, isteğe bağlı harici yedekleme seçeneğiyle cihazınızda saklanır. Devam ederek %1$s kabul etmiş olursunuz.</string>
+    <string name="privacy_policy_link">gizlilik politikamızı</string>
     <string name="currency">Para Birimi</string>
     <string name="select_main_currency">Ana Para Birimini Seç</string>
     <string name="add_new">Yeni Ekle</string>

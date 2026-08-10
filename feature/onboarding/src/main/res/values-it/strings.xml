@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Tieni traccia delle tue spese</string>
     <string name="welcome_message_description">Resta informato e tieni un registro delle tue spese</string>
-    <string name="privacy_text">Tutti i tuoi dati sono archiviati sul tuo dispositivo con opzione di backup esterno. Continuando, accetti la nostra informativa sulla privacy.</string>
+    <string name="privacy_text">Tutti i tuoi dati sono archiviati sul tuo dispositivo con opzione di backup esterno. Continuando, accetti la nostra %1$s.</string>
+    <string name="privacy_policy_link">informativa sulla privacy</string>
     <string name="currency">Valuta</string>
     <string name="select_main_currency">Seleziona valuta principale</string>
     <string name="add_new">Aggiungi nuovo</string>

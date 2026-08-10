@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">अपने खर्च को ट्रैक करें</string>
     <string name="welcome_message_description">जानकारी रखें और अपने खर्च का रिकॉर्ड बनाएं</string>
-    <string name="privacy_text">आपका सारा डेटा आपकी डिवाइस पर सेव रहता है, साथ ही बाहरी बैकअप का विकल्प भी उपलब्ध है। आगे बढ़ने पर, आप हमारी प्राइवेसी पॉलिसी से सहमत होते हैं।</string>
+    <string name="privacy_text">आपका सारा डेटा आपकी डिवाइस पर सेव रहता है, साथ ही बाहरी बैकअप का विकल्प भी उपलब्ध है। आगे बढ़ने पर, आप हमारी %1$s से सहमत होते हैं।</string>
+    <string name="privacy_policy_link">प्राइवेसी पॉलिसी</string>
     <string name="currency">मुद्रा</string>
     <string name="select_main_currency">मुख्य मुद्रा चुनें</string>
     <string name="add_new">नया जोड़ें</string>

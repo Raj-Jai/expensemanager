@@ -2,7 +2,8 @@
 <resources>
     <string name="welcome_message_title">Behalte deine Ausgaben im Blick</string>
     <string name="welcome_message_description">Bleib informiert und führe Buch über deine Ausgaben</string>
-    <string name="privacy_text">Alle deine Daten werden auf deinem Gerät gespeichert, mit der Option eines externen Backups. Indem du fortfährst, stimmst du unserer Datenschutzerklärung zu.</string>
+    <string name="privacy_text">Alle deine Daten werden auf deinem Gerät gespeichert, mit der Option eines externen Backups. Indem du fortfährst, stimmst du unserer %1$s zu.</string>
+    <string name="privacy_policy_link">Datenschutzerklärung</string>
     <string name="currency">Währung</string>
     <string name="select_main_currency">Hauptwährung auswählen</string>
     <string name="add_new">Neu hinzufügen</string>
