@@ -28,6 +28,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.config)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
 
     implementation(libs.androidx.dataStore.preference)
     implementation(libs.backup.restore)

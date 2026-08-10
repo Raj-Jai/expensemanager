@@ -1,6 +1,7 @@
 package com.naveenapps.expensemanager.core.data.repository
 
 import android.content.Context
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.naveenapps.expensemanager.core.datastore.FeedbackDataStore
 import com.naveenapps.expensemanager.core.repository.FeedbackRepository
 import kotlinx.coroutines.flow.Flow
@@ -9,7 +10,8 @@ import java.util.concurrent.TimeUnit
 
 class FeedbackRepositoryImpl(
     private val context: Context,
-    private val feedbackDataStore: FeedbackDataStore
+    private val feedbackDataStore: FeedbackDataStore,
+    private val firebaseCrashlytics: FirebaseCrashlytics,
 ) : FeedbackRepository {
 
     override suspend fun setTransactionCreated(created: Boolean) {
@@ -20,13 +22,18 @@ class FeedbackRepositoryImpl(
         feedbackDataStore.setFeedbackDialogShown(shown)
     }
 
+    override fun didCrashOnPreviousExecution(): Boolean {
+        return runCatching { firebaseCrashlytics.didCrashOnPreviousExecution() }.getOrDefault(false)
+    }
+
     override fun shouldShowFeedbackDialog(): Flow<Boolean> = combine(
         feedbackDataStore.getTransactionCreatedCount(),
         feedbackDataStore.isFeedbackDialogShown()
     ) { transactionCount, isFeedbackDialogShown ->
         return@combine transactionCount > MIN_TRANSACTIONS_BEFORE_PROMPT &&
             !isFeedbackDialogShown &&
-            hasBeenInstalledLongEnough()
+            hasBeenInstalledLongEnough() &&
+            !didCrashOnPreviousExecution()
     }
 
     // Read straight from PackageManager rather than tracking our own first-launch timestamp —
