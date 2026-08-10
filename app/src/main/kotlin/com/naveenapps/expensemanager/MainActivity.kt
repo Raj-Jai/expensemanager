@@ -151,7 +151,16 @@ internal class MainActivity : AppCompatActivity(), AndroidScopeComponent {
     private fun launchAppUpdateCheck() {
         val appUpdateManager = AppUpdateManagerFactory.create(this)
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
-        appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
+        // appUpdateInfo() is async (backed by a Play Core service call), so the result can land
+        // after this Activity instance has already been destroyed — e.g. a config change like a
+        // rotation or an in-app locale switch (AppCompatDelegate.setApplicationLocales triggers a
+        // recreate). Once destroyed, activityResultLauncher is unregistered by the framework, so
+        // calling launch() on it from a stale callback crashes with
+        // "Attempting to launch an unregistered ActivityResultLauncher". Scoping the listener to
+        // this Activity (rather than a plain addOnSuccessListener) makes Play Services drop the
+        // callback automatically once the Activity stops, so it never fires against a destroyed
+        // instance.
+        appUpdateInfoTask.addOnSuccessListener(this) { appUpdateInfo ->
             if (appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                 appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE) &&
                 (appUpdateInfo.clientVersionStalenessDays() ?: -1) >= DAYS_FOR_FLEXIBLE_UPDATE
