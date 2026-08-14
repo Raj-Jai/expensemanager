@@ -2,6 +2,7 @@ package com.naveenapps.expensemanager
 
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
@@ -9,6 +10,7 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -74,31 +76,41 @@ internal class MainActivity : AppCompatActivity(), AndroidScopeComponent {
         }
 
         setContent {
-            val currentTheme by viewModel.currentTheme.collectAsState()
-            val onBoardingStatus by viewModel.onboardingStatus.collectAsState()
-            val isAppLockEnabled by viewModel.isAppLockEnabled.collectAsState()
-            val isAuthenticated by viewModel.isAuthenticated.collectAsState()
-            val isDarkTheme = shouldUseDarkTheme(theme = currentTheme.mode)
+            // Provided explicitly rather than relying on the automatic ViewTree lookup that
+            // rememberLauncherForActivityResult() falls back to (LocalView.current walking up to
+            // the decor view's ViewTreeActivityResultRegistryOwner). That lookup can race with
+            // window attachment right after this Activity is (re)created — e.g. following an
+            // in-app locale switch, a config change, or process restoration — occasionally
+            // resolving to null and crashing deep inside the Home screen's NavHost destination
+            // with "No ActivityResultRegistryOwner was provided via LocalActivityResultRegistryOwner".
+            // Providing it here up front removes that race entirely.
+            CompositionLocalProvider(LocalActivityResultRegistryOwner provides this) {
+                val currentTheme by viewModel.currentTheme.collectAsState()
+                val onBoardingStatus by viewModel.onboardingStatus.collectAsState()
+                val isAppLockEnabled by viewModel.isAppLockEnabled.collectAsState()
+                val isAuthenticated by viewModel.isAuthenticated.collectAsState()
+                val isDarkTheme = shouldUseDarkTheme(theme = currentTheme.mode)
 
-            if (onBoardingStatus != null) {
-                val showLock = onBoardingStatus == true && isAppLockEnabled && !isAuthenticated
+                if (onBoardingStatus != null) {
+                    val showLock = onBoardingStatus == true && isAppLockEnabled && !isAuthenticated
 
-                if (showLock) {
-                    NaveenAppsTheme(isDarkTheme = isDarkTheme) {
-                        LaunchedEffect(Unit) { showBiometricPrompt() }
-                        AppLockScreen(onUnlockClick = ::showBiometricPrompt)
-                    }
-                } else {
-                    MainScreen(
-                        composeNavigator = appComposeNavigator,
-                        componentProvider = activityComponentProvider,
-                        isDarkTheme = isDarkTheme,
-                        landingScreen = if (onBoardingStatus == true) {
-                            ExpenseManagerScreens.Home
-                        } else {
-                            ExpenseManagerScreens.IntroScreen
+                    if (showLock) {
+                        NaveenAppsTheme(isDarkTheme = isDarkTheme) {
+                            LaunchedEffect(Unit) { showBiometricPrompt() }
+                            AppLockScreen(onUnlockClick = ::showBiometricPrompt)
                         }
-                    )
+                    } else {
+                        MainScreen(
+                            composeNavigator = appComposeNavigator,
+                            componentProvider = activityComponentProvider,
+                            isDarkTheme = isDarkTheme,
+                            landingScreen = if (onBoardingStatus == true) {
+                                ExpenseManagerScreens.Home
+                            } else {
+                                ExpenseManagerScreens.IntroScreen
+                            }
+                        )
+                    }
                 }
             }
         }
