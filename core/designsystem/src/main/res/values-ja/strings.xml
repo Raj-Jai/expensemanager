@@ -24,4 +24,11 @@
     <string name="change">変更</string>
     <string name="add_new">新規追加</string>
     <string name="no_account_available">アカウントがありません\\nアカウントを作成するには + ボタンをタップしてください</string>
+
+    <string name="photo">写真</string>
+    <string name="choose_photo">写真を選択</string>
+    <string name="take_photo">写真を撮る</string>
+    <string name="choose_from_gallery">ギャラリーから選択</string>
+    <string name="pick_an_icon">アイコンを選択</string>
+    <string name="remove_photo">写真を削除</string>
 </resources>

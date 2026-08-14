@@ -24,4 +24,11 @@
     <string name="change">Ubah</string>
     <string name="add_new">Tambah Baru</string>
     <string name="no_account_available">Tidak ada akun yang tersedia\\nKetuk tombol + untuk membuat akun pertama Anda</string>
+
+    <string name="photo">Foto</string>
+    <string name="choose_photo">Pilih Foto</string>
+    <string name="take_photo">Ambil Foto</string>
+    <string name="choose_from_gallery">Pilih dari Galeri</string>
+    <string name="pick_an_icon">Pilih Ikon</string>
+    <string name="remove_photo">Hapus Foto</string>
 </resources>

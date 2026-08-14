@@ -181,6 +181,7 @@ private fun DashboardScreenContent(
                                     .wrapContentWidth(),
                                 name = it.name,
                                 icon = it.storedIcon.name,
+                                customImagePath = it.storedIcon.customImagePath,
                                 amount = it.amount.amountString ?: "",
                                 availableCreditLimit = it.availableCreditLimit?.amountString
                                     ?: "",

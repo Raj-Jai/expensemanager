@@ -14,6 +14,7 @@ import com.naveenapps.expensemanager.core.model.Resource
 import com.naveenapps.expensemanager.core.navigation.AppComposeNavigator
 import com.naveenapps.expensemanager.core.navigation.ExpenseManagerArgsNames
 import com.naveenapps.expensemanager.core.repository.CategoryRepository
+import com.naveenapps.expensemanager.core.repository.ImageStorageRepository
 import com.naveenapps.expensemanager.core.testing.BaseCoroutineTest
 import com.naveenapps.expensemanager.core.testing.FAKE_CATEGORY
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -37,6 +38,7 @@ class CategoryCreateViewModelTest : BaseCoroutineTest() {
         ArgumentCaptor.forClass(Category::class.java)
 
     private var categoryRepository: CategoryRepository = mock()
+    private var imageStorageRepository: ImageStorageRepository = mock()
     private var appComposeNavigator: AppComposeNavigator = mock()
 
     private lateinit var categoryCreateViewModel: CategoryCreateViewModel
@@ -60,6 +62,7 @@ class CategoryCreateViewModelTest : BaseCoroutineTest() {
                 categoryRepository,
                 checkCategoryValidationUseCase
             ),
+            imageStorageRepository = imageStorageRepository,
             appComposeNavigator = appComposeNavigator
         )
     }

@@ -24,4 +24,11 @@
     <string name="change">बदलें</string>
     <string name="add_new">नया जोड़ें</string>
     <string name="no_account_available">कोई खाता उपलब्ध नहीं है\\nअपना पहला खाता बनाने के लिए + बटन दबाएं</string>
+
+    <string name="photo">फ़ोटो</string>
+    <string name="choose_photo">फ़ोटो चुनें</string>
+    <string name="take_photo">फ़ोटो लें</string>
+    <string name="choose_from_gallery">गैलरी से चुनें</string>
+    <string name="pick_an_icon">आइकन चुनें</string>
+    <string name="remove_photo">फ़ोटो हटाएं</string>
 </resources>

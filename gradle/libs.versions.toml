@@ -8,6 +8,7 @@ androidxComposeBom = "2026.02.00"
 androidxComposeRuntimeTracing = "1.10.4"
 material3 = "1.4.0"
 androidxCore = "1.17.0"
+androidxExifInterface = "1.4.2"
 androidxDataStore = "1.2.0"
 androidxEspresso = "3.7.0"
 androidxLifecycle = "2.10.0"
@@ -100,6 +101,7 @@ androidx-compose-runtime-annotation = { group = "androidx.compose.runtime", name
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-dataStore-core = { group = "androidx.datastore", name = "datastore", version.ref = "androidxDataStore" }
 androidx-dataStore-preference = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "androidxDataStore" }
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "androidxExifInterface" }
 androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "androidxLifecycle" }
 androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-viewModelCompose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }

@@ -36,6 +36,7 @@ fun CategoryTransactionItem(
     iconBackgroundColor: String,
     amount: String,
     percentage: Float,
+    customImagePath: String? = null,
 ) {
     val categoryColor = iconBackgroundColor.toColor()
 
@@ -49,6 +50,7 @@ fun CategoryTransactionItem(
             icon = icon,
             iconBackgroundColor = iconBackgroundColor,
             name = name,
+            customImagePath = customImagePath,
         )
 
         Spacer(Modifier.width(14.dp))
@@ -122,6 +124,7 @@ fun CategoryTransactionSmallItem(
     iconBackgroundColor: String,
     amount: String,
     modifier: Modifier = Modifier,
+    customImagePath: String? = null,
 ) {
     Row(
         modifier = modifier,
@@ -133,6 +136,7 @@ fun CategoryTransactionSmallItem(
             modifier = Modifier,
             name = name,
             iconSize = 12.dp,
+            customImagePath = customImagePath,
         )
 
         Spacer(Modifier.width(10.dp))

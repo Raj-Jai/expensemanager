@@ -15,6 +15,7 @@ fun Category.toEntityModel(): CategoryEntity {
         createdOn = createdOn,
         updatedOn = updatedOn,
         defaultCategoryKey = titleResId.toDefaultCategoryKey(),
+        customImagePath = storedIcon.customImagePath,
     )
 }
 
@@ -26,6 +27,7 @@ fun CategoryEntity.toDomainModel(): Category {
         storedIcon = StoredIcon(
             name = iconName,
             backgroundColor = iconBackgroundColor,
+            customImagePath = customImagePath,
         ),
         createdOn = createdOn,
         updatedOn = updatedOn,

@@ -25,4 +25,6 @@ data class CategoryEntity(
     val createdOn: Date,
     @ColumnInfo(name = "default_category_key", defaultValue = "NULL")
     val defaultCategoryKey: String? = null,
+    @ColumnInfo(name = "custom_image_path", defaultValue = "NULL")
+    val customImagePath: String? = null,
 )

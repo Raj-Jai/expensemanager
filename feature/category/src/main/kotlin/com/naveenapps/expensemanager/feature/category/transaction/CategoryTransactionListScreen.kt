@@ -303,6 +303,7 @@ private fun CategoryTransactionListScreenContent(
                                         } ?: categoryTransaction.category.name,
                                         icon = categoryTransaction.category.storedIcon.name,
                                         iconBackgroundColor = categoryTransaction.category.storedIcon.backgroundColor,
+                                        customImagePath = categoryTransaction.category.storedIcon.customImagePath,
                                         amount = categoryTransaction.amount.amountString ?: "",
                                         percentage = categoryTransaction.percent,
                                     )

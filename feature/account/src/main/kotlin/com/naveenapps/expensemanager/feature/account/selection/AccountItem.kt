@@ -40,6 +40,7 @@ fun AccountItem(
     amountTextColor: Int? = null,
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
+    customImagePath: String? = null,
 ) {
     AppCardView(
         shape = shape,
@@ -63,6 +64,7 @@ fun AccountItem(
                 icon = icon,
                 iconBackgroundColor = iconBackgroundColor,
                 name = name,
+                customImagePath = customImagePath,
             )
             Column(
                 modifier = Modifier

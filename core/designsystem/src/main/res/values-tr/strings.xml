@@ -24,4 +24,11 @@
     <string name="change">Değiştir</string>
     <string name="add_new">Yeni Ekle</string>
     <string name="no_account_available">Hiç hesap yok\\nİlk hesabınızı oluşturmak için + düğmesine dokunun</string>
+
+    <string name="photo">Fotoğraf</string>
+    <string name="choose_photo">Fotoğraf seç</string>
+    <string name="take_photo">Fotoğraf çek</string>
+    <string name="choose_from_gallery">Galeriden seç</string>
+    <string name="pick_an_icon">Simge seç</string>
+    <string name="remove_photo">Fotoğrafı kaldır</string>
 </resources>

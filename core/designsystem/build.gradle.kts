@@ -16,4 +16,6 @@ dependencies {
     api(libs.accompanist.permissions)
     debugApi(libs.androidx.compose.ui.tooling)
     api(libs.mpcharts)
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.compose.material.iconsExtended)
 }

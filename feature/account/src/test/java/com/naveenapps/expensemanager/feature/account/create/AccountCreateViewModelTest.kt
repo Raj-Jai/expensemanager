@@ -19,6 +19,7 @@ import com.naveenapps.expensemanager.core.navigation.AppComposeNavigator
 import com.naveenapps.expensemanager.core.navigation.ExpenseManagerArgsNames
 import com.naveenapps.expensemanager.core.repository.AccountRepository
 import com.naveenapps.expensemanager.core.repository.CurrencyRepository
+import com.naveenapps.expensemanager.core.repository.ImageStorageRepository
 import com.naveenapps.expensemanager.core.settings.data.repository.NumberFormatRepositoryImpl
 import com.naveenapps.expensemanager.core.settings.domain.model.NumberFormatType
 import com.naveenapps.expensemanager.core.testing.BaseCoroutineTest
@@ -41,6 +42,7 @@ class AccountCreateViewModelTest : BaseCoroutineTest() {
     private val accountRepository: AccountRepository = mock()
     private val currencyRepository: CurrencyRepository = mock()
     private val appComposeNavigator: AppComposeNavigator = mock()
+    private val imageStorageRepository: ImageStorageRepository = mock()
 
     private val validate = CheckAccountValidationUseCase()
 
@@ -92,6 +94,7 @@ class AccountCreateViewModelTest : BaseCoroutineTest() {
             addAccountUseCase = addAccountUseCase,
             updateAccountUseCase = updateAccountUseCase,
             deleteAccountUseCase = deleteAccountUseCase,
+            imageStorageRepository = imageStorageRepository,
             composeNavigator = appComposeNavigator,
             numberFormatRepository = numberFormatRepository,
         )
@@ -296,6 +299,7 @@ class AccountCreateViewModelTest : BaseCoroutineTest() {
                 addAccountUseCase = addAccountUseCase,
                 updateAccountUseCase = updateAccountUseCase,
                 deleteAccountUseCase = deleteAccountUseCase,
+                imageStorageRepository = imageStorageRepository,
                 composeNavigator = appComposeNavigator,
                 numberFormatRepository = numberFormatRepository,
             )

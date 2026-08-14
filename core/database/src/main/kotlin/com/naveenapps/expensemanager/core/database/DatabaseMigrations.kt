@@ -84,3 +84,20 @@ internal val MIGRATION_5_6 = object : Migration(5, 6) {
         db.execSQL("ALTER TABLE `budget` ADD COLUMN `period_type` INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+/**
+ * Adds a nullable `custom_image_path` column to both `category` and `account`, holding the
+ * absolute path to a user-picked/captured photo copied into app-private storage (see
+ * `ImageStorageRepository`). Defaults to NULL for every existing row, which correctly means "no
+ * custom photo — keep showing the icon/color" for every row that existed before this migration.
+ *
+ * Both columns are added in this single migration (rather than one migration per table) because
+ * this app version has not been published yet — no installed build has ever run with only the
+ * `category` column present, so there's no real-world database to preserve a separate step for.
+ */
+internal val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `category` ADD COLUMN `custom_image_path` TEXT DEFAULT NULL")
+        db.execSQL("ALTER TABLE `account` ADD COLUMN `custom_image_path` TEXT DEFAULT NULL")
+    }
+}

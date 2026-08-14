@@ -221,6 +221,7 @@ private fun CategoryListScreenContent(
                                     ?: category.name,
                                 icon = category.storedIcon.name,
                                 iconBackgroundColor = category.storedIcon.backgroundColor,
+                                customImagePath = category.storedIcon.customImagePath,
                                 shape = AppCardViewDefaults.cardShape(index, categories),
                                 modifier = Modifier
                                     .fillMaxWidth()

@@ -24,4 +24,11 @@
     <string name="change">تغيير</string>
     <string name="add_new">إضافة جديد</string>
     <string name="no_account_available">لا توجد حسابات متاحة\\nانقر على زر + لإنشاء حسابك الأول</string>
+
+    <string name="photo">صورة</string>
+    <string name="choose_photo">اختيار صورة</string>
+    <string name="take_photo">التقاط صورة</string>
+    <string name="choose_from_gallery">الاختيار من المعرض</string>
+    <string name="pick_an_icon">اختيار رمز</string>
+    <string name="remove_photo">إزالة الصورة</string>
 </resources>

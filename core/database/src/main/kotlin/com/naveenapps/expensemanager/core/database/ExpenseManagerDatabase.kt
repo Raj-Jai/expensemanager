@@ -30,7 +30,7 @@ import com.naveenapps.expensemanager.core.database.utils.TransactionTypeConverte
         BudgetCategoryEntity::class,
         BudgetAccountEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(

@@ -59,6 +59,7 @@ fun CategoryAmountView(
                             ?: item.category.name,
                         icon = item.category.storedIcon.name,
                         iconBackgroundColor = item.category.storedIcon.backgroundColor,
+                        customImagePath = item.category.storedIcon.customImagePath,
                         amount = item.amount.amountString ?: "",
                     )
                 }

@@ -51,6 +51,7 @@ fun CategorySelectionScreen(
                 name = category.titleResId?.let { stringResource(it) } ?: category.name,
                 icon = category.storedIcon.name,
                 iconBackgroundColor = category.storedIcon.backgroundColor,
+                customImagePath = category.storedIcon.customImagePath,
                 border = CategoryItemDefaults.border(isSelected),
                 modifier = Modifier
                     .fillMaxWidth(),

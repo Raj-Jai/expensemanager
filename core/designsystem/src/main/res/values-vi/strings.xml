@@ -24,4 +24,11 @@
     <string name="change">Thay đổi</string>
     <string name="add_new">Thêm mới</string>
     <string name="no_account_available">Không có tài khoản nào\\nNhấn nút + để tạo tài khoản đầu tiên của bạn</string>
+
+    <string name="photo">Ảnh</string>
+    <string name="choose_photo">Chọn ảnh</string>
+    <string name="take_photo">Chụp ảnh</string>
+    <string name="choose_from_gallery">Chọn từ thư viện</string>
+    <string name="pick_an_icon">Chọn biểu tượng</string>
+    <string name="remove_photo">Xóa ảnh</string>
 </resources>

@@ -21,6 +21,7 @@ val CategoryViewModelModule = module {
             addCategoryUseCase = get(),
             updateCategoryUseCase = get(),
             deleteCategoryUseCase = get(),
+            imageStorageRepository = get(),
             appComposeNavigator = get()
         )
     }

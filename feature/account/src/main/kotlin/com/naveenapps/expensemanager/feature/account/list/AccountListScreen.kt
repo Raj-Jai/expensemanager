@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,10 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +57,7 @@ import com.naveenapps.expensemanager.core.designsystem.components.EmptyItem
 import com.naveenapps.expensemanager.core.designsystem.ui.components.AppCardView
 import com.naveenapps.expensemanager.core.designsystem.ui.components.AppCardViewDefaults
 import com.naveenapps.expensemanager.core.designsystem.ui.components.ExpenseManagerTopAppBar
-import com.naveenapps.expensemanager.core.designsystem.ui.extensions.getDrawable
+import com.naveenapps.expensemanager.core.designsystem.ui.components.IconOrCustomImage
 import com.naveenapps.expensemanager.core.model.Account
 import com.naveenapps.expensemanager.core.model.AccountType
 import com.naveenapps.expensemanager.core.model.AccountUiModel
@@ -214,6 +213,7 @@ private fun AccountListScreenContent(
                         amount = account.amount.amountString,
                         subtitle = account.availableCreditLimit?.amountString,
                         amountTextColor = account.amountTextColor,
+                        customImagePath = account.storedIcon.customImagePath,
                         shape = AppCardViewDefaults.cardShape(index, state.accounts),
                         trailingContent = {
                             AccountItemDefaults.ChevronTrailing()
@@ -234,9 +234,9 @@ fun DashBoardAccountItem(
     availableCreditLimit: String?,
     amountTextColor: Color,
     modifier: Modifier = Modifier,
+    customImagePath: String? = null,
     onItemClick: (() -> Unit) = {}
 ) {
-    val context = LocalContext.current
     val hasCreditLimit = !availableCreditLimit.isNullOrBlank()
 
     AppCardView(
@@ -256,18 +256,23 @@ fun DashBoardAccountItem(
                 Box(
                     modifier = Modifier
                         .size(30.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(if (customImagePath != null) CircleShape else RoundedCornerShape(8.dp))
                         .background(
                             MaterialTheme.colorScheme.surfaceContainerHighest
                                 .copy(alpha = 0.6f),
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        painter = painterResource(id = context.getDrawable(icon)),
+                    IconOrCustomImage(
+                        icon = icon,
+                        customImagePath = customImagePath,
                         contentDescription = name,
-                        modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = if (customImagePath != null) {
+                            Modifier.size(30.dp)
+                        } else {
+                            Modifier.size(16.dp)
+                        },
                     )
                 }
                 Spacer(Modifier.width(8.dp))

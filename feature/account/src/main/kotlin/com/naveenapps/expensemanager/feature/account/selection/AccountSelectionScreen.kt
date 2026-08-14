@@ -52,6 +52,7 @@ fun AccountSelectionScreen(
                 iconBackgroundColor = account.storedIcon.backgroundColor,
                 amount = account.amount.amountString,
                 amountTextColor = account.amountTextColor,
+                customImagePath = account.storedIcon.customImagePath,
                 border = AccountItemDefaults.border(isSelected),
                 trailingContent = {
                     AccountItemDefaults.SingleCheckedTrailing(isSelected)

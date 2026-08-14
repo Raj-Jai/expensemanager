@@ -29,4 +29,6 @@ data class AccountEntity(
     val createdOn: Date,
     @ColumnInfo(name = "updated_on")
     val updatedOn: Date,
+    @ColumnInfo(name = "custom_image_path", defaultValue = "NULL")
+    val customImagePath: String? = null,
 )

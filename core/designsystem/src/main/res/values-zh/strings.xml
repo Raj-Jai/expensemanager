@@ -24,4 +24,11 @@
     <string name="change">更改</string>
     <string name="add_new">新增</string>
     <string name="no_account_available">暂无可用账户\\n点击 + 按钮创建您的第一个账户</string>
+
+    <string name="photo">照片</string>
+    <string name="choose_photo">选择照片</string>
+    <string name="take_photo">拍照</string>
+    <string name="choose_from_gallery">从相册选择</string>
+    <string name="pick_an_icon">选择图标</string>
+    <string name="remove_photo">删除照片</string>
 </resources>

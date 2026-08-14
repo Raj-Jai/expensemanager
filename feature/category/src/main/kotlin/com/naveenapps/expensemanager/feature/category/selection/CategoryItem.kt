@@ -32,6 +32,7 @@ fun CategoryItem(
     border: BorderStroke = CardDefaults.outlinedCardBorder(),
     onClick: (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
+    customImagePath: String? = null,
 ) {
     AppCardView(
         shape = shape,
@@ -55,6 +56,7 @@ fun CategoryItem(
                 icon = icon,
                 iconBackgroundColor = iconBackgroundColor,
                 name = name,
+                customImagePath = customImagePath,
             )
             Text(
                 text = name,

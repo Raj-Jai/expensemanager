@@ -1,5 +1,6 @@
 package com.naveenapps.expensemanager.feature.account.create
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,6 +21,7 @@ import com.naveenapps.expensemanager.core.model.StoredIcon
 import com.naveenapps.expensemanager.core.model.TextFieldValue
 import com.naveenapps.expensemanager.core.navigation.AppComposeNavigator
 import com.naveenapps.expensemanager.core.navigation.ExpenseManagerArgsNames
+import com.naveenapps.expensemanager.core.repository.ImageStorageRepository
 import com.naveenapps.expensemanager.core.settings.domain.repository.NumberFormatRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,9 +42,12 @@ class AccountCreateViewModel(
     private val addAccountUseCase: AddAccountUseCase,
     private val updateAccountUseCase: UpdateAccountUseCase,
     private val deleteAccountUseCase: DeleteAccountUseCase,
+    private val imageStorageRepository: ImageStorageRepository,
     private val composeNavigator: AppComposeNavigator,
     private val numberFormatRepository: NumberFormatRepository,
 ) : ViewModel() {
+
+    private val sessionCreatedImagePaths = mutableListOf<String>()
 
     private var _state = MutableStateFlow(
         AccountCreateState(
@@ -106,6 +111,8 @@ class AccountCreateViewModel(
         readAccountInfo(savedStateHandle.get<String>(ExpenseManagerArgsNames.ID))
     }
 
+    fun createImageCaptureUri(): Uri = imageStorageRepository.createImageCaptureUri()
+
     private fun getAmountValue(
         amount: Double,
         currency: Currency? = null
@@ -142,7 +149,8 @@ class AccountCreateViewModel(
                     totalAmount = getAmountValue(totalAmount, _state.value.currency).amountString
                         ?: "",
                     totalAmountBackgroundColor = getBalanceBackgroundColor(totalAmount),
-                    showDeleteButton = true
+                    showDeleteButton = true,
+                    customImagePath = accountItem.storedIcon.customImagePath,
                 )
             }
         }
@@ -174,6 +182,10 @@ class AccountCreateViewModel(
                 when (deleteAccountUseCase.invoke(account)) {
                     is Resource.Error -> Unit
                     is Resource.Success -> {
+                        account.storedIcon.customImagePath?.let {
+                            imageStorageRepository.deleteAccountImage(it)
+                        }
+                        discardSessionImages()
                         closePage()
                     }
                 }
@@ -188,6 +200,7 @@ class AccountCreateViewModel(
         val color: String = state.value.color.value
         val icon: String = state.value.icon.value
         val accountType = state.value.type.value
+        val customImagePath: String? = _state.value.customImagePath
 
         var isError = false
 
@@ -220,6 +233,7 @@ class AccountCreateViewModel(
             storedIcon = StoredIcon(
                 name = icon,
                 backgroundColor = color,
+                customImagePath = customImagePath,
             ),
             amount = numberFormatRepository.parseToDouble(currentBalance) ?: 0.0,
             creditLimit = if (accountType == AccountType.CREDIT) {
@@ -233,6 +247,8 @@ class AccountCreateViewModel(
         )
 
         viewModelScope.launch {
+            val previouslyPersistedImagePath =
+                this@AccountCreateViewModel.account?.storedIcon?.customImagePath
             val response = if (this@AccountCreateViewModel.account != null) {
                 updateAccountUseCase(account)
             } else {
@@ -241,7 +257,16 @@ class AccountCreateViewModel(
             when (response) {
                 is Resource.Error -> Unit
                 is Resource.Success -> {
-                    composeNavigator.popBackStack()
+                    if (previouslyPersistedImagePath != null &&
+                        previouslyPersistedImagePath != customImagePath
+                    ) {
+                        imageStorageRepository.deleteAccountImage(previouslyPersistedImagePath)
+                    }
+                    if (customImagePath != null) {
+                        sessionCreatedImagePaths.remove(customImagePath)
+                    }
+                    discardSessionImages()
+                    closePage()
                 }
             }
         }
@@ -251,12 +276,34 @@ class AccountCreateViewModel(
         composeNavigator.popBackStack()
     }
 
+    private fun onImagePicked(uri: Uri) {
+        viewModelScope.launch {
+            val path = imageStorageRepository.saveAccountImage(uri) ?: return@launch
+            sessionCreatedImagePaths.add(path)
+            _state.update { it.copy(customImagePath = path) }
+        }
+    }
+
+    private fun removeImage() {
+        _state.update { it.copy(customImagePath = null) }
+    }
+
+    private fun cancelEditing() {
+        discardSessionImages()
+        closePage()
+    }
+
+    private fun discardSessionImages() {
+        sessionCreatedImagePaths.forEach { imageStorageRepository.deleteAccountImage(it) }
+        sessionCreatedImagePaths.clear()
+    }
+
     private fun setColorValue(color: String) {
         _state.update { it.copy(color = it.color.copy(value = color)) }
     }
 
     private fun setIconValue(icon: String) {
-        _state.update { it.copy(icon = it.icon.copy(value = icon)) }
+        _state.update { it.copy(icon = it.icon.copy(value = icon), customImagePath = null) }
     }
 
     private fun setAccountTypeChange(type: AccountType) {
@@ -319,12 +366,19 @@ class AccountCreateViewModel(
 
     fun processAction(action: AccountCreateAction) {
         when (action) {
-            AccountCreateAction.ClosePage -> closePage()
+            AccountCreateAction.ClosePage -> cancelEditing()
             AccountCreateAction.Delete -> deleteAccount()
             AccountCreateAction.Save -> saveOrUpdateAccount()
             AccountCreateAction.DismissDeleteDialog -> dismissDeleteDialog()
             AccountCreateAction.ShowDeleteDialog -> showDeleteDialog()
+            is AccountCreateAction.ImagePicked -> onImagePicked(action.uri)
+            AccountCreateAction.RemoveImage -> removeImage()
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        discardSessionImages()
     }
 
     companion object {

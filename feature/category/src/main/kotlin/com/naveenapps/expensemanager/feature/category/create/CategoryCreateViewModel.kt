@@ -1,5 +1,6 @@
 package com.naveenapps.expensemanager.feature.category.create
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +15,7 @@ import com.naveenapps.expensemanager.core.model.StoredIcon
 import com.naveenapps.expensemanager.core.model.TextFieldValue
 import com.naveenapps.expensemanager.core.navigation.AppComposeNavigator
 import com.naveenapps.expensemanager.core.navigation.ExpenseManagerArgsNames
+import com.naveenapps.expensemanager.core.repository.ImageStorageRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -28,6 +30,7 @@ class CategoryCreateViewModel(
     private val addCategoryUseCase: AddCategoryUseCase,
     private val updateCategoryUseCase: UpdateCategoryUseCase,
     private val deleteCategoryUseCase: DeleteCategoryUseCase,
+    private val imageStorageRepository: ImageStorageRepository,
     private val appComposeNavigator: AppComposeNavigator,
 ) : ViewModel() {
 
@@ -61,11 +64,20 @@ class CategoryCreateViewModel(
 
     private var category: Category? = null
 
+    // Every file created by an image pick/capture during this editing session, so an unsaved
+    // session (user backs out, or picks a second photo before saving the first) doesn't leave
+    // orphaned files behind. The path that actually ends up persisted is removed from this list
+    // at save time; everything left over gets deleted.
+    private val sessionCreatedImagePaths = mutableListOf<String>()
+
     init {
         readCategoryInfo(
             savedStateHandle.get<String>(ExpenseManagerArgsNames.ID),
         )
     }
+
+    /** Destination Uri for the camera app to write a full-resolution capture into. */
+    fun createImageCaptureUri(): Uri = imageStorageRepository.createImageCaptureUri()
 
     private fun updateCategoryInfo(category: Category?) {
         category?.let { categoryItem ->
@@ -78,6 +90,7 @@ class CategoryCreateViewModel(
                     color = it.color.copy(value = categoryItem.storedIcon.backgroundColor),
                     showDeleteButton = true,
                     nameResId = categoryItem.titleResId,
+                    customImagePath = categoryItem.storedIcon.customImagePath,
                 )
             }
         }
@@ -101,6 +114,10 @@ class CategoryCreateViewModel(
                 when (deleteCategoryUseCase.invoke(category)) {
                     is Resource.Error -> Unit
                     is Resource.Success -> {
+                        category.storedIcon.customImagePath?.let {
+                            imageStorageRepository.deleteCategoryImage(it)
+                        }
+                        discardSessionImages()
                         closePage()
                     }
                 }
@@ -113,6 +130,7 @@ class CategoryCreateViewModel(
         val color: String = _state.value.color.value
         val icon: String = _state.value.icon.value
         val type: CategoryType = _state.value.type.value
+        val customImagePath: String? = _state.value.customImagePath
 
         if (name.isBlank()) {
             _state.update { it.copy(name = it.name.copy(valueError = true)) }
@@ -126,6 +144,7 @@ class CategoryCreateViewModel(
             storedIcon = StoredIcon(
                 name = icon,
                 backgroundColor = color,
+                customImagePath = customImagePath,
             ),
             createdOn = Calendar.getInstance().time,
             updatedOn = Calendar.getInstance().time,
@@ -136,6 +155,7 @@ class CategoryCreateViewModel(
         )
 
         viewModelScope.launch {
+            val previouslyPersistedImagePath = this@CategoryCreateViewModel.category?.storedIcon?.customImagePath
             val response = if (this@CategoryCreateViewModel.category != null) {
                 updateCategoryUseCase(category)
             } else {
@@ -144,6 +164,17 @@ class CategoryCreateViewModel(
             when (response) {
                 is Resource.Error -> Unit
                 is Resource.Success -> {
+                    // The old persisted image is only safe to delete now that the new value has
+                    // actually been written — deleting it earlier (e.g. the moment a replacement
+                    // photo was picked) would leave a dangling reference if the user backed out
+                    // without saving.
+                    if (previouslyPersistedImagePath != null && previouslyPersistedImagePath != customImagePath) {
+                        imageStorageRepository.deleteCategoryImage(previouslyPersistedImagePath)
+                    }
+                    if (customImagePath != null) {
+                        sessionCreatedImagePaths.remove(customImagePath)
+                    }
+                    discardSessionImages()
                     closePage()
                 }
             }
@@ -159,7 +190,20 @@ class CategoryCreateViewModel(
     }
 
     private fun setIconChange(icon: String) {
-        _state.update { it.copy(icon = it.icon.copy(value = icon)) }
+        // Picking a stock icon and having a custom photo are mutually exclusive.
+        _state.update { it.copy(icon = it.icon.copy(value = icon), customImagePath = null) }
+    }
+
+    private fun onImagePicked(uri: Uri) {
+        viewModelScope.launch {
+            val path = imageStorageRepository.saveCategoryImage(uri) ?: return@launch
+            sessionCreatedImagePaths.add(path)
+            _state.update { it.copy(customImagePath = path) }
+        }
+    }
+
+    private fun removeImage() {
+        _state.update { it.copy(customImagePath = null) }
     }
 
     private fun setNameChange(name: String) {
@@ -172,6 +216,17 @@ class CategoryCreateViewModel(
 
     private fun closePage() {
         appComposeNavigator.popBackStack()
+    }
+
+    /** Handles the user backing out without saving — discards any photo picked this session. */
+    private fun cancelEditing() {
+        discardSessionImages()
+        closePage()
+    }
+
+    private fun discardSessionImages() {
+        sessionCreatedImagePaths.forEach { imageStorageRepository.deleteCategoryImage(it) }
+        sessionCreatedImagePaths.clear()
     }
 
     private fun showDeleteDialog() {
@@ -187,11 +242,19 @@ class CategoryCreateViewModel(
             CategoryCreateAction.Save -> saveOrUpdateCategory()
             is CategoryCreateAction.SelectColor -> setColorChange(action.color)
             is CategoryCreateAction.SelectIcon -> setIconChange(action.icon)
+            is CategoryCreateAction.ImagePicked -> onImagePicked(action.uri)
+            CategoryCreateAction.RemoveImage -> removeImage()
             CategoryCreateAction.ShowDeleteDialog -> showDeleteDialog()
             CategoryCreateAction.DismissDeleteDialog -> dismissDeleteDialog()
-            CategoryCreateAction.ClosePage -> closePage()
+            CategoryCreateAction.ClosePage -> cancelEditing()
             CategoryCreateAction.Delete -> deleteCategory()
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Safety net for process death / backgrounding paths that skip ClosePage entirely.
+        discardSessionImages()
     }
 
     companion object {

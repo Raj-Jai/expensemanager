@@ -404,6 +404,7 @@ private fun TransactionCreateContent(
                         ?: state.selectedCategory.name,
                     icon = state.selectedCategory.storedIcon.name,
                     iconBackgroundColor = state.selectedCategory.storedIcon.backgroundColor,
+                    customImagePath = state.selectedCategory.storedIcon.customImagePath,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         focusManager.clearFocus(force = true)
@@ -430,6 +431,7 @@ private fun TransactionCreateContent(
                 iconBackgroundColor = state.selectedFromAccount.storedIcon.backgroundColor,
                 amount = state.selectedFromAccount.amount.amountString,
                 amountTextColor = state.selectedFromAccount.amountTextColor,
+                customImagePath = state.selectedFromAccount.storedIcon.customImagePath,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     focusManager.clearFocus(force = true)
@@ -456,6 +458,7 @@ private fun TransactionCreateContent(
                     iconBackgroundColor = state.selectedToAccount.storedIcon.backgroundColor,
                     amount = state.selectedToAccount.amount.amountString,
                     amountTextColor = state.selectedToAccount.amountTextColor,
+                    customImagePath = state.selectedToAccount.storedIcon.customImagePath,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         focusManager.clearFocus(force = true)

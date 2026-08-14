@@ -24,4 +24,11 @@
     <string name="change">변경</string>
     <string name="add_new">새로 추가</string>
     <string name="no_account_available">사용 가능한 계좌가 없습니다\\n+ 버튼을 눌러 첫 계좌를 만드세요</string>
+
+    <string name="photo">사진</string>
+    <string name="choose_photo">사진 선택</string>
+    <string name="take_photo">사진 촬영</string>
+    <string name="choose_from_gallery">갤러리에서 선택</string>
+    <string name="pick_an_icon">아이콘 선택</string>
+    <string name="remove_photo">사진 삭제</string>
 </resources>

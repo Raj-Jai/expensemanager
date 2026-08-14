@@ -24,4 +24,11 @@
     <string name="change">Изменить</string>
     <string name="add_new">Добавить</string>
     <string name="no_account_available">Нет доступных счетов\\nНажмите кнопку +, чтобы создать первый счёт</string>
+
+    <string name="photo">Фото</string>
+    <string name="choose_photo">Выбрать фото</string>
+    <string name="take_photo">Сделать фото</string>
+    <string name="choose_from_gallery">Выбрать из галереи</string>
+    <string name="pick_an_icon">Выбрать значок</string>
+    <string name="remove_photo">Удалить фото</string>
 </resources>

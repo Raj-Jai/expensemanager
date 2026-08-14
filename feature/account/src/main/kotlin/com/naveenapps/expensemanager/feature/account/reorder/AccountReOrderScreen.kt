@@ -192,6 +192,7 @@ private fun ReOrderContent(
                     name = account.name,
                     icon = account.storedIcon.name,
                     iconBackgroundColor = account.storedIcon.backgroundColor,
+                    customImagePath = account.storedIcon.customImagePath,
                     isDragging = isDragging,
                     position = index + 1,
                     modifier = Modifier
@@ -209,6 +210,7 @@ fun AccountReOrderItem(
     icon: String,
     iconBackgroundColor: String,
     modifier: Modifier = Modifier,
+    customImagePath: String? = null,
     isDragging: Boolean = false,
     position: Int = 0,
 ) {
@@ -232,6 +234,7 @@ fun AccountReOrderItem(
             icon = icon,
             iconBackgroundColor = iconBackgroundColor,
             name = name,
+            customImagePath = customImagePath,
         )
 
         Text(

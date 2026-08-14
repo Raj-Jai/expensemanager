@@ -24,4 +24,11 @@
     <string name="change">Zmień</string>
     <string name="add_new">Dodaj nowe</string>
     <string name="no_account_available">Brak dostępnych kont\\nDotknij przycisku +, aby utworzyć pierwsze konto</string>
+
+    <string name="photo">Zdjęcie</string>
+    <string name="choose_photo">Wybierz zdjęcie</string>
+    <string name="take_photo">Zrób zdjęcie</string>
+    <string name="choose_from_gallery">Wybierz z galerii</string>
+    <string name="pick_an_icon">Wybierz ikonę</string>
+    <string name="remove_photo">Usuń zdjęcie</string>
 </resources>

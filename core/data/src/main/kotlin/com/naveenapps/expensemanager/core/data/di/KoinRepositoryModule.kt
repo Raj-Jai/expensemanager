@@ -13,6 +13,7 @@ import com.naveenapps.expensemanager.core.data.repository.export.CsvExportStrate
 import com.naveenapps.expensemanager.core.data.repository.export.PdfExportStrategy
 import com.naveenapps.expensemanager.core.data.repository.FeedbackRepositoryImpl
 import com.naveenapps.expensemanager.core.data.repository.FirebaseSettingsRepositoryImpl
+import com.naveenapps.expensemanager.core.data.repository.ImageStorageRepositoryImpl
 import com.naveenapps.expensemanager.core.data.repository.JsonConverterRepositoryImpl
 import com.naveenapps.expensemanager.core.data.repository.LocaleRepositoryImpl
 import com.naveenapps.expensemanager.core.data.repository.ReminderTimeRepositoryImpl
@@ -32,6 +33,7 @@ import com.naveenapps.expensemanager.core.repository.DevicePropertyRepository
 import com.naveenapps.expensemanager.core.repository.ExportRepository
 import com.naveenapps.expensemanager.core.repository.FeedbackRepository
 import com.naveenapps.expensemanager.core.repository.FirebaseSettingsRepository
+import com.naveenapps.expensemanager.core.repository.ImageStorageRepository
 import com.naveenapps.expensemanager.core.repository.JsonConverterRepository
 import com.naveenapps.expensemanager.core.repository.LocaleRepository
 import com.naveenapps.expensemanager.core.repository.ReminderTimeRepository
@@ -92,6 +94,7 @@ val RepositoryModule = module {
         )
     }
     single<FirebaseSettingsRepository> { FirebaseSettingsRepositoryImpl(firebaseRemoteConfig = get()) }
+    single<ImageStorageRepository> { ImageStorageRepositoryImpl(context = androidContext()) }
     single<VersionCheckerRepository> { VersionCheckerRepositoryImpl() }
 
     single<AccountRepository> {

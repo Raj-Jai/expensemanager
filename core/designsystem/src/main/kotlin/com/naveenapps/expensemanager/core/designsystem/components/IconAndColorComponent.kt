@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
@@ -33,6 +34,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.naveenapps.designsystem.theme.NaveenAppsPreviewTheme
 import com.naveenapps.designsystem.utils.AppPreviewsLightAndDarkMode
 import com.naveenapps.expensemanager.core.common.utils.toColorString
@@ -40,10 +42,12 @@ import com.naveenapps.expensemanager.core.designsystem.R
 import com.naveenapps.expensemanager.core.designsystem.ui.components.SafeModalBottomSheet
 import com.naveenapps.expensemanager.core.designsystem.ui.extensions.getDrawable
 import com.naveenapps.expensemanager.core.designsystem.ui.extensions.toColor
+import java.io.File
 
 enum class SelectionType {
     NONE,
     COLOR_SELECTION,
+    PHOTO_OPTIONS,
     ICON_SELECTION,
 }
 
@@ -55,6 +59,10 @@ fun IconAndColorComponent(
     onColorSelection: ((String) -> Unit)?,
     onIconSelection: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
+    customImagePath: String? = null,
+    onCaptureRequested: (() -> Unit)? = null,
+    onGalleryRequested: (() -> Unit)? = null,
+    onRemoveImage: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -73,6 +81,29 @@ fun IconAndColorComponent(
                         onColorSelection?.invoke(it.toColorString())
                         sheetSelection = SelectionType.NONE
                     }
+                }
+
+                SelectionType.PHOTO_OPTIONS -> {
+                    PhotoOptionsScreen(
+                        hasCustomImage = customImagePath != null,
+                        onTakePhoto = {
+                            sheetSelection = SelectionType.NONE
+                            onCaptureRequested?.invoke()
+                        },
+                        onChooseFromGallery = {
+                            sheetSelection = SelectionType.NONE
+                            onGalleryRequested?.invoke()
+                        },
+                        onPickIcon = {
+                            // Stay open — swap this same sheet's content to the icon grid rather
+                            // than closing and reopening, so it reads as one continuous flow.
+                            sheetSelection = SelectionType.ICON_SELECTION
+                        },
+                        onRemovePhoto = {
+                            sheetSelection = SelectionType.NONE
+                            onRemoveImage?.invoke()
+                        },
+                    )
                 }
 
                 SelectionType.ICON_SELECTION -> {
@@ -133,13 +164,14 @@ fun IconAndColorComponent(
             }
         }
 
-        // Icon picker
+        // Photo/icon picker — replaces the old icon-only card. Shows the custom photo when one is
+        // set, otherwise falls back to today's icon+color preview.
         Surface(
             shape = RoundedCornerShape(16.dp),
             tonalElevation = 2.dp,
             modifier = Modifier.weight(1f),
             onClick = {
-                sheetSelection = SelectionType.ICON_SELECTION
+                sheetSelection = SelectionType.PHOTO_OPTIONS
                 focusManager.clearFocus(force = true)
             },
         ) {
@@ -148,22 +180,33 @@ fun IconAndColorComponent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                IconButton(
-                    modifier = Modifier.size(28.dp),
-                    onClick = { },
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = containerColor,
-                        contentColor = contentColor,
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(context.getDrawable(iconName = selectedIcon)),
+                if (customImagePath != null) {
+                    AsyncImage(
+                        model = File(customImagePath),
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape),
                     )
+                } else {
+                    IconButton(
+                        modifier = Modifier.size(28.dp),
+                        onClick = { },
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = containerColor,
+                            contentColor = contentColor,
+                        ),
+                    ) {
+                        Icon(
+                            painter = painterResource(context.getDrawable(iconName = selectedIcon)),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                 }
                 Text(
-                    text = stringResource(R.string.icon),
+                    text = stringResource(R.string.photo),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                 )

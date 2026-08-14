@@ -17,4 +17,5 @@ data class AccountCreateState(
     @DrawableRes val totalAmountBackgroundColor: Int,
     val showDeleteButton: Boolean,
     val showDeleteDialog: Boolean,
+    val customImagePath: String? = null,
 )

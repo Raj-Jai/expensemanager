@@ -54,6 +54,7 @@ import com.naveenapps.expensemanager.core.designsystem.ui.components.DecimalText
 import com.naveenapps.expensemanager.core.designsystem.ui.components.ExpenseManagerTopAppBar
 import com.naveenapps.expensemanager.core.designsystem.ui.components.SettingsSection
 import com.naveenapps.expensemanager.core.designsystem.ui.components.StringTextField
+import com.naveenapps.expensemanager.core.designsystem.ui.utils.rememberImagePickerActions
 import com.naveenapps.expensemanager.core.model.AccountType
 import com.naveenapps.expensemanager.core.model.Currency
 import com.naveenapps.expensemanager.core.model.TextFieldValue
@@ -67,9 +68,16 @@ fun AccountCreateScreen(
 
     val state by viewModel.state.collectAsState()
 
+    val imagePicker = rememberImagePickerActions(
+        createCaptureUri = viewModel::createImageCaptureUri,
+        onImagePicked = { viewModel.processAction(AccountCreateAction.ImagePicked(it)) },
+    )
+
     AccountCreateScaffoldView(
         state = state,
         onAction = viewModel::processAction,
+        onCaptureRequested = imagePicker.onCaptureRequested,
+        onGalleryRequested = imagePicker.onGalleryRequested,
     )
 }
 
@@ -77,6 +85,8 @@ fun AccountCreateScreen(
 private fun AccountCreateScaffoldView(
     state: AccountCreateState,
     onAction: (AccountCreateAction) -> Unit,
+    onCaptureRequested: () -> Unit = {},
+    onGalleryRequested: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -142,6 +152,10 @@ private fun AccountCreateScaffoldView(
             creditLimit = state.creditLimit,
             totalAmount = state.totalAmount,
             totalAmountBackgroundColor = state.totalAmountBackgroundColor,
+            customImagePath = state.customImagePath,
+            onCaptureRequested = onCaptureRequested,
+            onGalleryRequested = onGalleryRequested,
+            onRemoveImage = { onAction.invoke(AccountCreateAction.RemoveImage) },
         )
     }
 }
@@ -157,6 +171,10 @@ private fun AccountCreateScreen(
     creditLimit: TextFieldValue<String>,
     totalAmount: String,
     totalAmountBackgroundColor: Int,
+    customImagePath: String? = null,
+    onCaptureRequested: () -> Unit = {},
+    onGalleryRequested: () -> Unit = {},
+    onRemoveImage: () -> Unit = {},
 ) {
     Column(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -218,6 +236,10 @@ private fun AccountCreateScreen(
                         selectedIcon = icon.value,
                         onColorSelection = color.onValueChange,
                         onIconSelection = icon.onValueChange,
+                        customImagePath = customImagePath,
+                        onCaptureRequested = onCaptureRequested,
+                        onGalleryRequested = onGalleryRequested,
+                        onRemoveImage = onRemoveImage,
                     )
                 }
             }

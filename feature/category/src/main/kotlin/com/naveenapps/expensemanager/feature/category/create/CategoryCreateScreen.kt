@@ -38,6 +38,7 @@ import com.naveenapps.expensemanager.core.designsystem.ui.components.AppCardView
 import com.naveenapps.expensemanager.core.designsystem.ui.components.ExpenseManagerTopAppBar
 import com.naveenapps.expensemanager.core.designsystem.ui.components.SettingsSection
 import com.naveenapps.expensemanager.core.designsystem.ui.components.StringTextField
+import com.naveenapps.expensemanager.core.designsystem.ui.utils.rememberImagePickerActions
 import com.naveenapps.expensemanager.core.model.CategoryType
 import com.naveenapps.expensemanager.core.model.TextFieldValue
 import com.naveenapps.expensemanager.feature.category.R
@@ -49,9 +50,16 @@ fun CategoryCreateScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
+    val imagePicker = rememberImagePickerActions(
+        createCaptureUri = viewModel::createImageCaptureUri,
+        onImagePicked = { viewModel.processAction(CategoryCreateAction.ImagePicked(it)) },
+    )
+
     CategoryCreateScreenContentView(
         state = state,
-        onAction = viewModel::processAction
+        onAction = viewModel::processAction,
+        onCaptureRequested = imagePicker.onCaptureRequested,
+        onGalleryRequested = imagePicker.onGalleryRequested,
     )
 }
 
@@ -59,6 +67,8 @@ fun CategoryCreateScreen(
 private fun CategoryCreateScreenContentView(
     state: CategoryCreateState,
     onAction: (CategoryCreateAction) -> Unit,
+    onCaptureRequested: () -> Unit = {},
+    onGalleryRequested: () -> Unit = {},
 ) {
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -123,6 +133,10 @@ private fun CategoryCreateScreenContentView(
             selectedColorField = state.color,
             selectedIconField = state.icon,
             nameResId = state.nameResId,
+            customImagePath = state.customImagePath,
+            onCaptureRequested = onCaptureRequested,
+            onGalleryRequested = onGalleryRequested,
+            onRemoveImage = { onAction.invoke(CategoryCreateAction.RemoveImage) },
         )
     }
 }
@@ -135,6 +149,10 @@ private fun CategoryCreateScreen(
     selectedIconField: TextFieldValue<String>,
     modifier: Modifier = Modifier,
     nameResId: Int? = null,
+    customImagePath: String? = null,
+    onCaptureRequested: () -> Unit = {},
+    onGalleryRequested: () -> Unit = {},
+    onRemoveImage: () -> Unit = {},
 ) {
     Column(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -196,6 +214,10 @@ private fun CategoryCreateScreen(
                         selectedIcon = selectedIconField.value,
                         onColorSelection = selectedColorField.onValueChange,
                         onIconSelection = selectedIconField.onValueChange,
+                        customImagePath = customImagePath,
+                        onCaptureRequested = onCaptureRequested,
+                        onGalleryRequested = onGalleryRequested,
+                        onRemoveImage = onRemoveImage,
                     )
                 }
             }
