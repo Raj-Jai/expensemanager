@@ -8,12 +8,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
@@ -48,6 +51,9 @@ import com.naveenapps.designsystem.theme.NaveenAppsPreviewTheme
 import com.naveenapps.designsystem.utils.AppPreviewsLightAndDarkMode
 import com.naveenapps.expensemanager.core.common.utils.toCompleteDateWithDate
 import com.naveenapps.expensemanager.core.common.utils.toTimeAndMinutes
+import com.naveenapps.expensemanager.core.designsystem.components.AttachmentAddTile
+import com.naveenapps.expensemanager.core.designsystem.components.AttachmentPickerScreen
+import com.naveenapps.expensemanager.core.designsystem.components.AttachmentThumbnail
 import com.naveenapps.expensemanager.core.designsystem.components.DeleteDialogItem
 import com.naveenapps.expensemanager.core.designsystem.ui.components.AppCardView
 import com.naveenapps.expensemanager.core.designsystem.ui.components.AppDatePickerDialog
@@ -57,6 +63,7 @@ import com.naveenapps.expensemanager.core.designsystem.ui.components.DecimalText
 import com.naveenapps.expensemanager.core.designsystem.ui.components.ExpenseManagerTopAppBar
 import com.naveenapps.expensemanager.core.designsystem.ui.components.SafeModalBottomSheet
 import com.naveenapps.expensemanager.core.designsystem.ui.components.SettingsSection
+import com.naveenapps.expensemanager.core.designsystem.ui.utils.rememberImagePickerActions
 import com.naveenapps.expensemanager.core.designsystem.utils.ObserveAsEvents
 import com.naveenapps.expensemanager.core.model.AccountType
 import com.naveenapps.expensemanager.core.model.AccountUiModel
@@ -101,9 +108,16 @@ fun TransactionCreateScreen(
         }
     }
 
+    val attachmentPicker = rememberImagePickerActions(
+        createCaptureUri = viewModel::createImageCaptureUri,
+        onImagePicked = { viewModel.processAction(TransactionCreateAction.AttachmentPicked(it)) },
+    )
+
     TransactionCreateScreenContent(
         state = state,
-        onAction = viewModel::processAction
+        onAction = viewModel::processAction,
+        onCaptureRequested = attachmentPicker.onCaptureRequested,
+        onGalleryRequested = attachmentPicker.onGalleryRequested,
     )
 }
 
@@ -111,6 +125,8 @@ fun TransactionCreateScreen(
 private fun TransactionCreateScreenContent(
     state: TransactionCreateState,
     onAction: (TransactionCreateAction) -> Unit,
+    onCaptureRequested: () -> Unit = {},
+    onGalleryRequested: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -129,6 +145,8 @@ private fun TransactionCreateScreenContent(
         CategorySelectionView(state, onAction)
     } else if (state.showAccountSelection) {
         AccountSelectionView(state, onAction)
+    } else if (state.showAttachmentPicker) {
+        AttachmentPickerView(onAction, onCaptureRequested, onGalleryRequested)
     }
 
     Scaffold(
@@ -180,6 +198,31 @@ private fun TransactionCreateScreenContent(
                 .verticalScroll(rememberScrollState()),
             state = state,
             onAction = onAction,
+        )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun AttachmentPickerView(
+    onAction: (TransactionCreateAction) -> Unit,
+    onCaptureRequested: () -> Unit,
+    onGalleryRequested: () -> Unit,
+) {
+    SafeModalBottomSheet(
+        onDismissRequest = {
+            onAction.invoke(TransactionCreateAction.DismissAttachmentPicker)
+        },
+    ) {
+        AttachmentPickerScreen(
+            onTakePhoto = {
+                onAction.invoke(TransactionCreateAction.DismissAttachmentPicker)
+                onCaptureRequested()
+            },
+            onChooseFromGallery = {
+                onAction.invoke(TransactionCreateAction.DismissAttachmentPicker)
+                onGalleryRequested()
+            },
         )
     }
 }
@@ -274,7 +317,7 @@ private fun TransactionCreateScreen(
     TransactionCreateContent(
         modifier = modifier,
         state = state,
-        onAction = onAction
+        onAction = onAction,
     )
 }
 
@@ -282,7 +325,7 @@ private fun TransactionCreateScreen(
 private fun TransactionCreateContent(
     modifier: Modifier,
     state: TransactionCreateState,
-    onAction: (TransactionCreateAction) -> Unit
+    onAction: (TransactionCreateAction) -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
 
@@ -470,6 +513,31 @@ private fun TransactionCreateContent(
                         AccountItemDefaults.ChevronTrailing()
                     },
                 )
+            }
+        }
+
+        SettingsSection(title = stringResource(R.string.attachments)) {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(state.attachments, key = { it }) { path ->
+                    AttachmentThumbnail(
+                        imagePath = path,
+                        onRemove = {
+                            onAction.invoke(TransactionCreateAction.RemoveAttachment(path))
+                        },
+                    )
+                }
+                item {
+                    AttachmentAddTile(
+                        onClick = {
+                            focusManager.clearFocus(force = true)
+                            onAction.invoke(TransactionCreateAction.ShowAttachmentPicker)
+                        },
+                    )
+                }
             }
         }
 

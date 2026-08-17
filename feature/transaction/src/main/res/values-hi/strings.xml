@@ -46,6 +46,7 @@
     <string name="amount">राशि</string>
     <string name="from_account">किस खाते से</string>
     <string name="to_account">किस खाते में</string>
+    <string name="attachments">अनुलग्नक</string>
 
     <string name="edit_transaction">लेन-देन संपादित करें</string>
     <string name="create_transaction">नया लेन-देन</string>

@@ -46,6 +46,7 @@
     <string name="amount">المبلغ</string>
     <string name="from_account">من حساب</string>
     <string name="to_account">إلى حساب</string>
+    <string name="attachments">المرفقات</string>
 
     <string name="edit_transaction">تعديل المعاملة</string>
     <string name="create_transaction">معاملة جديدة</string>

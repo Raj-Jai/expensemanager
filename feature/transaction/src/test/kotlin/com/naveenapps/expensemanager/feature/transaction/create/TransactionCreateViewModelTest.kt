@@ -22,6 +22,7 @@ import com.naveenapps.expensemanager.core.model.Transaction
 import com.naveenapps.expensemanager.core.model.TransactionType
 import com.naveenapps.expensemanager.core.navigation.AppComposeNavigator
 import com.naveenapps.expensemanager.core.repository.FeedbackRepository
+import com.naveenapps.expensemanager.core.repository.ImageStorageRepository
 import com.naveenapps.expensemanager.core.repository.SettingsRepository
 import com.naveenapps.expensemanager.core.settings.domain.repository.NumberFormatRepository
 import com.naveenapps.expensemanager.core.testing.BaseCoroutineTest
@@ -46,6 +47,7 @@ class TransactionCreateViewModelTest : BaseCoroutineTest() {
     private val updateTransactionUseCase: UpdateTransactionUseCase = mock()
     private val deleteTransactionUseCase: DeleteTransactionUseCase = mock()
     private val settingsRepository: SettingsRepository = mock()
+    private val imageStorageRepository: ImageStorageRepository = mock()
     private val appComposeNavigator: AppComposeNavigator = mock()
     private val numberFormatRepository: NumberFormatRepository = mock()
     private val feedbackRepository: FeedbackRepository = mock()
@@ -103,6 +105,7 @@ class TransactionCreateViewModelTest : BaseCoroutineTest() {
             updateTransactionUseCase = updateTransactionUseCase,
             deleteTransactionUseCase = deleteTransactionUseCase,
             settingsRepository = settingsRepository,
+            imageStorageRepository = imageStorageRepository,
             appComposeNavigator = appComposeNavigator,
             numberFormatRepository = numberFormatRepository,
             feedbackRepository = feedbackRepository,

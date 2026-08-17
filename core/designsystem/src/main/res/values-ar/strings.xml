@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">الاختيار من المعرض</string>
     <string name="pick_an_icon">اختيار رمز</string>
     <string name="remove_photo">إزالة الصورة</string>
+    <string name="add_attachment">إضافة مرفق</string>
 </resources>

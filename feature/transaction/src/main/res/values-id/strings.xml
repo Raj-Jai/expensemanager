@@ -46,6 +46,7 @@
     <string name="amount">Jumlah</string>
     <string name="from_account">Dari Akun</string>
     <string name="to_account">Ke Akun</string>
+    <string name="attachments">Lampiran</string>
 
     <string name="edit_transaction">Ubah Transaksi</string>
     <string name="create_transaction">Transaksi Baru</string>

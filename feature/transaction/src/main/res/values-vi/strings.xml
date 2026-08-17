@@ -46,6 +46,7 @@
     <string name="amount">Số tiền</string>
     <string name="from_account">Từ tài khoản</string>
     <string name="to_account">Đến tài khoản</string>
+    <string name="attachments">Tệp đính kèm</string>
 
     <string name="edit_transaction">Chỉnh sửa giao dịch</string>
     <string name="create_transaction">Giao dịch mới</string>

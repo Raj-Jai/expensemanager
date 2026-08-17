@@ -38,6 +38,13 @@ class ImageStorageRepositoryImpl(
         runCatching { File(path).delete() }
     }
 
+    override suspend fun saveTransactionAttachment(sourceUri: Uri): String? =
+        saveImage(sourceUri, TRANSACTION_ATTACHMENT_DIR)
+
+    override fun deleteTransactionAttachment(path: String) {
+        runCatching { File(path).delete() }
+    }
+
     private suspend fun saveImage(sourceUri: Uri, folderName: String): String? =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -110,6 +117,7 @@ class ImageStorageRepositoryImpl(
         private const val CAPTURE_DIR = "captured_images"
         private const val CATEGORY_IMAGE_DIR = "category_images"
         private const val ACCOUNT_IMAGE_DIR = "account_images"
+        private const val TRANSACTION_ATTACHMENT_DIR = "transaction_attachments"
         private const val MAX_DIMENSION = 512
         private const val JPEG_QUALITY = 85
     }

@@ -46,6 +46,7 @@
     <string name="amount">金額</string>
     <string name="from_account">振替元アカウント</string>
     <string name="to_account">振替先アカウント</string>
+    <string name="attachments">添付ファイル</string>
 
     <string name="edit_transaction">取引を編集</string>
     <string name="create_transaction">新規取引</string>

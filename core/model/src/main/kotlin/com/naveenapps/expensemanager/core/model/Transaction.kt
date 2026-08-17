@@ -30,4 +30,5 @@ data class Transaction(
         Date(),
     ),
     var toAccount: Account? = null,
+    var attachments: List<String> = emptyList(),
 )

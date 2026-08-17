@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">Выбрать из галереи</string>
     <string name="pick_an_icon">Выбрать значок</string>
     <string name="remove_photo">Удалить фото</string>
+    <string name="add_attachment">Добавить вложение</string>
 </resources>

@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">Chọn từ thư viện</string>
     <string name="pick_an_icon">Chọn biểu tượng</string>
     <string name="remove_photo">Xóa ảnh</string>
+    <string name="add_attachment">Thêm tệp đính kèm</string>
 </resources>

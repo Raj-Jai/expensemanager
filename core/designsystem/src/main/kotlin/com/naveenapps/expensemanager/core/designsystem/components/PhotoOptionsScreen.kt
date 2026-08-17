@@ -84,7 +84,7 @@ fun PhotoOptionsScreen(
 }
 
 @Composable
-private fun PhotoOptionRow(
+internal fun PhotoOptionRow(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,

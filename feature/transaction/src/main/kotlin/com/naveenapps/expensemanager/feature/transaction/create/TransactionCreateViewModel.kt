@@ -1,5 +1,6 @@
 package com.naveenapps.expensemanager.feature.transaction.create
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +34,7 @@ import com.naveenapps.expensemanager.core.model.toAccountUiModel
 import com.naveenapps.expensemanager.core.navigation.AppComposeNavigator
 import com.naveenapps.expensemanager.core.navigation.ExpenseManagerArgsNames
 import com.naveenapps.expensemanager.core.navigation.ExpenseManagerScreens
+import com.naveenapps.expensemanager.core.repository.ImageStorageRepository
 import com.naveenapps.expensemanager.core.repository.SettingsRepository
 import com.naveenapps.expensemanager.core.settings.domain.repository.NumberFormatRepository
 import kotlinx.coroutines.channels.Channel
@@ -62,10 +64,13 @@ class TransactionCreateViewModel(
     private val updateTransactionUseCase: UpdateTransactionUseCase,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val settingsRepository: SettingsRepository,
+    private val imageStorageRepository: ImageStorageRepository,
     private val appComposeNavigator: AppComposeNavigator,
     private val numberFormatRepository: NumberFormatRepository,
     private val feedbackRepository: FeedbackRepository,
 ) : ViewModel() {
+
+    private val sessionCreatedAttachmentPaths = mutableListOf<String>()
 
     private val _event = Channel<TransactionCreateEvent>()
     val event = _event.receiveAsFlow()
@@ -188,6 +193,8 @@ class TransactionCreateViewModel(
 
     // endregion
 
+    fun createImageCaptureUri(): Uri = imageStorageRepository.createImageCaptureUri()
+
     // region Transaction load (edit mode)
 
     private suspend fun loadEditingTransaction(transactionId: String) {
@@ -221,6 +228,7 @@ class TransactionCreateViewModel(
                             )
                         } ?: defaultAccount,
                         showDeleteButton = true,
+                        attachments = transaction.attachments,
                     )
                 }
             }
@@ -264,11 +272,13 @@ class TransactionCreateViewModel(
             imagePath = "",
             createdOn = state.dateTime,
             updatedOn = Calendar.getInstance().time,
+            attachments = state.attachments,
         )
     }
 
     private fun persistTransaction(transaction: Transaction) {
         val isNewTransaction = editingTransaction == null
+        val previouslyPersistedAttachments = editingTransaction?.attachments ?: emptyList()
         viewModelScope.launch {
             val response = if (editingTransaction != null) {
                 updateTransactionUseCase.invoke(transaction)
@@ -276,6 +286,11 @@ class TransactionCreateViewModel(
                 addTransactionUseCase.invoke(transaction)
             }
             if (response is Resource.Success) {
+                (previouslyPersistedAttachments - transaction.attachments.toSet()).forEach {
+                    imageStorageRepository.deleteTransactionAttachment(it)
+                }
+                sessionCreatedAttachmentPaths.removeAll(transaction.attachments)
+                discardSessionAttachments()
                 if (isNewTransaction) {
                     onNewTransactionCreated()
                 }
@@ -302,9 +317,39 @@ class TransactionCreateViewModel(
         val transaction = editingTransaction ?: return
         viewModelScope.launch {
             if (deleteTransactionUseCase.invoke(transaction) is Resource.Success) {
+                transaction.attachments.forEach {
+                    imageStorageRepository.deleteTransactionAttachment(it)
+                }
+                discardSessionAttachments()
                 closePage()
             }
         }
+    }
+
+    // endregion
+
+    // region Attachments
+
+    private fun onAttachmentPicked(uri: Uri) {
+        viewModelScope.launch {
+            val path = imageStorageRepository.saveTransactionAttachment(uri) ?: return@launch
+            sessionCreatedAttachmentPaths.add(path)
+            _state.update { it.copy(attachments = it.attachments + path) }
+        }
+    }
+
+    private fun removeAttachment(path: String) {
+        _state.update { it.copy(attachments = it.attachments - path) }
+    }
+
+    private fun cancelEditing() {
+        discardSessionAttachments()
+        closePage()
+    }
+
+    private fun discardSessionAttachments() {
+        sessionCreatedAttachmentPaths.forEach { imageStorageRepository.deleteTransactionAttachment(it) }
+        sessionCreatedAttachmentPaths.clear()
     }
 
     // endregion
@@ -373,7 +418,7 @@ class TransactionCreateViewModel(
 
     fun processAction(action: TransactionCreateAction) {
         when (action) {
-            TransactionCreateAction.ClosePage -> closePage()
+            TransactionCreateAction.ClosePage -> cancelEditing()
             TransactionCreateAction.ShowDeleteDialog -> showDeleteDialog()
             TransactionCreateAction.DismissDeleteDialog -> dismissDeleteDialog()
             TransactionCreateAction.Delete -> deleteTransaction()
@@ -446,7 +491,27 @@ class TransactionCreateViewModel(
                     showTimeSelection = false
                 )
             }
+
+            TransactionCreateAction.ShowAttachmentPicker -> _state.update {
+                it.copy(showAttachmentPicker = true)
+            }
+
+            TransactionCreateAction.DismissAttachmentPicker -> _state.update {
+                it.copy(showAttachmentPicker = false)
+            }
+
+            is TransactionCreateAction.AttachmentPicked -> {
+                _state.update { it.copy(showAttachmentPicker = false) }
+                onAttachmentPicked(action.uri)
+            }
+
+            is TransactionCreateAction.RemoveAttachment -> removeAttachment(action.path)
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        discardSessionAttachments()
     }
 
     companion object {

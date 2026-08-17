@@ -12,6 +12,7 @@ import com.naveenapps.expensemanager.core.database.entity.BudgetAccountEntity
 import com.naveenapps.expensemanager.core.database.entity.BudgetCategoryEntity
 import com.naveenapps.expensemanager.core.database.entity.BudgetEntity
 import com.naveenapps.expensemanager.core.database.entity.CategoryEntity
+import com.naveenapps.expensemanager.core.database.entity.TransactionAttachmentEntity
 import com.naveenapps.expensemanager.core.database.entity.TransactionEntity
 import com.naveenapps.expensemanager.core.database.utils.AccountTypeConverter
 import com.naveenapps.expensemanager.core.database.utils.CategoryTypeConverter
@@ -29,8 +30,9 @@ import com.naveenapps.expensemanager.core.database.utils.TransactionTypeConverte
         BudgetEntity::class,
         BudgetCategoryEntity::class,
         BudgetAccountEntity::class,
+        TransactionAttachmentEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(

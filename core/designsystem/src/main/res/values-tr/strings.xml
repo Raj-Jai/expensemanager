@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">Galeriden seç</string>
     <string name="pick_an_icon">Simge seç</string>
     <string name="remove_photo">Fotoğrafı kaldır</string>
+    <string name="add_attachment">Ek ekle</string>
 </resources>

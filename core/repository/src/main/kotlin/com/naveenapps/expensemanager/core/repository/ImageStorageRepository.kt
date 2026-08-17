@@ -33,4 +33,14 @@ interface ImageStorageRepository {
 
     /** Best-effort delete of a previously saved custom account image; safe to call with any path. */
     fun deleteAccountImage(path: String)
+
+    /**
+     * Same as [saveCategoryImage], but stored under the transaction attachments directory. A
+     * transaction can have any number of these (unlike Category/Account's single photo), so this
+     * is called once per picked/captured photo.
+     */
+    suspend fun saveTransactionAttachment(sourceUri: Uri): String?
+
+    /** Best-effort delete of a previously saved transaction attachment; safe to call with any path. */
+    fun deleteTransactionAttachment(path: String)
 }

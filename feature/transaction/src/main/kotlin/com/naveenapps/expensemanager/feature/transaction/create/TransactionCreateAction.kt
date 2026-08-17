@@ -1,5 +1,6 @@
 package com.naveenapps.expensemanager.feature.transaction.create
 
+import android.net.Uri
 import com.naveenapps.expensemanager.core.model.AccountUiModel
 import com.naveenapps.expensemanager.core.model.Category
 import com.naveenapps.expensemanager.core.model.TransactionType
@@ -48,4 +49,12 @@ sealed class TransactionCreateAction {
     data object DismissDateSelection : TransactionCreateAction()
 
     data object ShowTimeSelection : TransactionCreateAction()
+
+    data object ShowAttachmentPicker : TransactionCreateAction()
+
+    data object DismissAttachmentPicker : TransactionCreateAction()
+
+    data class AttachmentPicked(val uri: Uri) : TransactionCreateAction()
+
+    data class RemoveAttachment(val path: String) : TransactionCreateAction()
 }

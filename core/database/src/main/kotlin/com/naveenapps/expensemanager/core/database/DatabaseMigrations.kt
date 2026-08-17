@@ -101,3 +101,27 @@ internal val MIGRATION_6_7 = object : Migration(6, 7) {
         db.execSQL("ALTER TABLE `account` ADD COLUMN `custom_image_path` TEXT DEFAULT NULL")
     }
 }
+
+/**
+ * Adds the `transaction_attachment` table — one or more receipt/proof-of-payment photos per
+ * transaction. Unlike Category/Account's single `custom_image_path` column, a transaction can
+ * have any number of attachments, so this is a child table (same one-to-many shape as
+ * `budget_category_relation`/`budget_account_relation`) rather than a column, with
+ * `ON DELETE CASCADE` so deleting a transaction automatically drops its attachment rows. The
+ * actual image files on disk are cleaned up separately by `ImageStorageRepository`, since Room
+ * only owns the row, not the file.
+ */
+internal val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `transaction_attachment` (" +
+                "`id` TEXT NOT NULL, " +
+                "`transaction_id` TEXT NOT NULL, " +
+                "`image_path` TEXT NOT NULL, " +
+                "`created_on` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`), " +
+                "FOREIGN KEY(`transaction_id`) REFERENCES `transaction`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE CASCADE)"
+        )
+    }
+}

@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">गैलरी से चुनें</string>
     <string name="pick_an_icon">आइकन चुनें</string>
     <string name="remove_photo">फ़ोटो हटाएं</string>
+    <string name="add_attachment">अनुलग्नक जोड़ें</string>
 </resources>

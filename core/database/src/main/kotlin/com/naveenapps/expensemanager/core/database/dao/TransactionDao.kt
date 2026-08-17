@@ -1,15 +1,20 @@
 package com.naveenapps.expensemanager.core.database.dao
 
 import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.naveenapps.expensemanager.core.database.entity.AccountEntity
+import com.naveenapps.expensemanager.core.database.entity.TransactionAttachmentEntity
 import com.naveenapps.expensemanager.core.database.entity.TransactionEntity
 import com.naveenapps.expensemanager.core.database.entity.TransactionRelation
 import com.naveenapps.expensemanager.core.model.TransactionType
 import com.naveenapps.expensemanager.core.model.isTransfer
 import kotlinx.coroutines.flow.Flow
+import java.util.Date
+import java.util.UUID
 
 @Dao
 interface TransactionDao : BaseDao<TransactionEntity> {
@@ -59,14 +64,36 @@ interface TransactionDao : BaseDao<TransactionEntity> {
     @Query("SELECT * FROM account WHERE id = :id")
     suspend fun findAccountById(id: String): AccountEntity?
 
+    @Query(
+        "SELECT * FROM transaction_attachment WHERE transaction_id = :transactionId ORDER BY created_on ASC",
+    )
+    suspend fun getTransactionAttachments(transactionId: String): List<TransactionAttachmentEntity>
+
+    @Query("DELETE FROM transaction_attachment WHERE transaction_id = :transactionId")
+    suspend fun removeTransactionAttachments(transactionId: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTransactionAttachment(attachmentEntity: TransactionAttachmentEntity): Long
+
     @Transaction
     suspend fun insertTransaction(
         transactionEntity: TransactionEntity,
         amountToDetect: Double,
         isTransfer: Boolean,
+        attachmentPaths: List<String> = emptyList(),
     ): Long {
         val id = insert(transactionEntity)
         if (id != -1L) {
+            attachmentPaths.forEach { path ->
+                insertTransactionAttachment(
+                    TransactionAttachmentEntity(
+                        id = UUID.randomUUID().toString(),
+                        transactionId = transactionEntity.id,
+                        imagePath = path,
+                        createdOn = Date(),
+                    ),
+                )
+            }
             val accountEntity = findAccountById(transactionEntity.fromAccountId)
             if (accountEntity != null) {
                 updateAccount(
@@ -129,8 +156,21 @@ interface TransactionDao : BaseDao<TransactionEntity> {
         transactionEntity: TransactionEntity,
         amountToDetect: Double,
         isTransfer: Boolean,
+        attachmentPaths: List<String> = emptyList(),
     ) {
         update(transactionEntity)
+
+        removeTransactionAttachments(transactionEntity.id)
+        attachmentPaths.forEach { path ->
+            insertTransactionAttachment(
+                TransactionAttachmentEntity(
+                    id = UUID.randomUUID().toString(),
+                    transactionId = transactionEntity.id,
+                    imagePath = path,
+                    createdOn = Date(),
+                ),
+            )
+        }
 
         val accountEntity = findAccountById(transactionEntity.fromAccountId)
         if (accountEntity != null) {

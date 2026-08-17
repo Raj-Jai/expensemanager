@@ -46,6 +46,7 @@
     <string name="amount">Tutar</string>
     <string name="from_account">Kaynak Hesap</string>
     <string name="to_account">Hedef Hesap</string>
+    <string name="attachments">Ekler</string>
 
     <string name="edit_transaction">İşlemi Düzenle</string>
     <string name="create_transaction">Yeni İşlem</string>

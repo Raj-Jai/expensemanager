@@ -46,6 +46,7 @@
     <string name="amount">Montant</string>
     <string name="from_account">Compte source</string>
     <string name="to_account">Compte de destination</string>
+    <string name="attachments">Pièces jointes</string>
 
     <string name="edit_transaction">Modifier la transaction</string>
     <string name="create_transaction">Nouvelle transaction</string>

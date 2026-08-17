@@ -46,6 +46,7 @@
     <string name="amount">금액</string>
     <string name="from_account">출금 계좌</string>
     <string name="to_account">입금 계좌</string>
+    <string name="attachments">첨부 파일</string>
 
     <string name="edit_transaction">거래 수정</string>
     <string name="create_transaction">새 거래</string>

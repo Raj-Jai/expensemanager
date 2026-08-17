@@ -46,6 +46,7 @@
     <string name="amount">Valor</string>
     <string name="from_account">Conta de origem</string>
     <string name="to_account">Conta de destino</string>
+    <string name="attachments">Anexos</string>
 
     <string name="edit_transaction">Editar transação</string>
     <string name="create_transaction">Nova transação</string>

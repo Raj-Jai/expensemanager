@@ -46,6 +46,7 @@
     <string name="amount">Kwota</string>
     <string name="from_account">Z konta</string>
     <string name="to_account">Na konto</string>
+    <string name="attachments">Załączniki</string>
 
     <string name="edit_transaction">Edytuj transakcję</string>
     <string name="create_transaction">Nowa transakcja</string>

@@ -46,6 +46,7 @@
     <string name="amount">金额</string>
     <string name="from_account">转出账户</string>
     <string name="to_account">转入账户</string>
+    <string name="attachments">附件</string>
 
     <string name="edit_transaction">编辑交易</string>
     <string name="create_transaction">新交易</string>

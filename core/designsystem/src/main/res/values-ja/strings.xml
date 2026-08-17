@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">ギャラリーから選択</string>
     <string name="pick_an_icon">アイコンを選択</string>
     <string name="remove_photo">写真を削除</string>
+    <string name="add_attachment">添付ファイルを追加</string>
 </resources>

@@ -46,6 +46,7 @@
     <string name="amount">Сумма</string>
     <string name="from_account">Счёт списания</string>
     <string name="to_account">Счёт зачисления</string>
+    <string name="attachments">Вложения</string>
 
     <string name="edit_transaction">Изменить операцию</string>
     <string name="create_transaction">Новая операция</string>

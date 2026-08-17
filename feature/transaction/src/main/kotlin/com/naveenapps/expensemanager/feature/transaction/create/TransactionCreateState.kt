@@ -28,6 +28,8 @@ data class TransactionCreateState(
     val showAccountSelection: Boolean,
     val showDateSelection: Boolean,
     val showTimeSelection: Boolean,
+    val attachments: List<String> = emptyList(),
+    val showAttachmentPicker: Boolean = false,
 )
 
 enum class AccountSelection {

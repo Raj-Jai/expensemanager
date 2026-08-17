@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">从相册选择</string>
     <string name="pick_an_icon">选择图标</string>
     <string name="remove_photo">删除照片</string>
+    <string name="add_attachment">添加附件</string>
 </resources>

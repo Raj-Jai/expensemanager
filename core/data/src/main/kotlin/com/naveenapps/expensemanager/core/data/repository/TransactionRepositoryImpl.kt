@@ -57,6 +57,7 @@ class TransactionRepositoryImpl(
                         transaction.amount.amount * -1
                     },
                     transaction.type.isTransfer(),
+                    transaction.attachments,
                 )
                 Resource.Success(response != -1L)
             } catch (exception: Exception) {
@@ -77,6 +78,7 @@ class TransactionRepositoryImpl(
                         transaction.amount.amount * -1
                     },
                     transaction.type.isTransfer(),
+                    transaction.attachments,
                 )
                 Resource.Success(true)
             } catch (exception: Exception) {
@@ -116,6 +118,7 @@ class TransactionRepositoryImpl(
             category = relation.categoryEntity?.toDomainModel() ?: return null
             fromAccount = relation.fromAccountEntity?.toDomainModel() ?: return null
             toAccount = relation.toAccountEntity?.toDomainModel()
+            attachments = relation.attachmentEntities.map { it.imagePath }
         }
     }
 
@@ -132,6 +135,8 @@ class TransactionRepositoryImpl(
                 transaction.toAccount = accountEntity.toDomainModel()
             }
         }
+        transaction.attachments = transactionDao.getTransactionAttachments(transaction.id)
+            .map { it.imagePath }
         return transaction
     }
 

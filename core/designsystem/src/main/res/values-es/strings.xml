@@ -31,4 +31,5 @@
     <string name="choose_from_gallery">Elegir de la galería</string>
     <string name="pick_an_icon">Elegir un icono</string>
     <string name="remove_photo">Quitar foto</string>
+    <string name="add_attachment">Agregar adjunto</string>
 </resources>

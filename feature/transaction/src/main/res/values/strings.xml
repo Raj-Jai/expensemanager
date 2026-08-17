@@ -46,6 +46,7 @@
     <string name="amount">Amount</string>
     <string name="from_account">From Account</string>
     <string name="to_account">To Account</string>
+    <string name="attachments">Attachments</string>
 
     <string name="edit_transaction">Edit Transaction</string>
     <string name="create_transaction">New Transaction</string>

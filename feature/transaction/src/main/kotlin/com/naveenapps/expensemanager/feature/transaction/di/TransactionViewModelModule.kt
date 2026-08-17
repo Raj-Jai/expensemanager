@@ -20,6 +20,7 @@ val TransactionViewModelModule = module {
             updateTransactionUseCase = get(),
             deleteTransactionUseCase = get(),
             settingsRepository = get(),
+            imageStorageRepository = get(),
             appComposeNavigator = get(),
             numberFormatRepository = get(),
             feedbackRepository = get(),

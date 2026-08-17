@@ -46,6 +46,7 @@
     <string name="amount">Importe</string>
     <string name="from_account">Cuenta de origen</string>
     <string name="to_account">Cuenta de destino</string>
+    <string name="attachments">Adjuntos</string>
 
     <string name="edit_transaction">Editar transacción</string>
     <string name="create_transaction">Nueva transacción</string>
