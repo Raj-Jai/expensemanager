@@ -22,13 +22,22 @@ interface TransactionDao : BaseDao<TransactionEntity> {
     @Query("SELECT * from `transaction` WHERE id=:id")
     fun findById(id: String): TransactionEntity?
 
+    // @Transaction is required here (not just on writes) because TransactionRelation embeds
+    // multiple @Relation fields (category, fromAccount, toAccount, attachments). Room fetches
+    // each relation via a separate sub-query and stitches the results back onto the parent rows
+    // using a key->list map; without @Transaction that stitching isn't atomic with the main
+    // query, so a concurrent write (e.g. attachments being deleted/reinserted on save) between
+    // the main query and a relation sub-query can leave a row's key missing from the map and
+    // throw NoSuchElementException from the generated getValue(...) call.
+    @Transaction
     @Query("SELECT * FROM `transaction`")
     fun getAllTransaction(): Flow<List<TransactionRelation>?>
 
+    @Transaction
     @Query(
         """
         SELECT * FROM `transaction`
-        WHERE `transaction`.from_account_id IN(:accounts) 
+        WHERE `transaction`.from_account_id IN(:accounts)
         AND `transaction`.category_id IN(:categories)
         AND `transaction`.type IN(:transactionTypes)
         ORDER BY `transaction`.created_on DESC
@@ -40,10 +49,11 @@ interface TransactionDao : BaseDao<TransactionEntity> {
         transactionTypes: List<Int>,
     ): Flow<List<TransactionRelation>?>
 
+    @Transaction
     @Query(
         """
         SELECT * FROM `transaction`
-        WHERE `transaction`.from_account_id IN(:accounts) 
+        WHERE `transaction`.from_account_id IN(:accounts)
         AND `transaction`.category_id IN(:categories)
         AND `transaction`.type IN(:transactionTypes)
         AND `transaction`.created_on BETWEEN :fromDate AND :toDate

@@ -1,5 +1,6 @@
 package com.naveenapps.expensemanager.core.navigation
 
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +42,14 @@ abstract class AppComposeNavigator : Navigator() {
     }
 
     private fun NavController.handleComposeNavigationCommand(navigationCommand: NavigationCommand) {
+        // Guard against a navigation command firing twice for the same in-flight transition —
+        // e.g. a fast double-tap on a toolbar back arrow, or the system back gesture racing
+        // with our own popBackStack()/navigate() call. Once a transition starts, the current
+        // entry's lifecycle moves away from RESUMED before it's actually removed from the back
+        // stack, so a redundant command arriving mid-transition is safely ignored here instead
+        // of crashing with IllegalStateException from NavControllerImpl.
+        if (!isCurrentEntryResumed()) return
+
         when (navigationCommand) {
             is NavigationCommand.NavigateToRoute -> {
                 navigate(navigationCommand.route, navigationCommand.options)
@@ -83,6 +92,9 @@ abstract class AppComposeNavigator : Navigator() {
             }
         }
     }
+
+    private fun NavController.isCurrentEntryResumed(): Boolean =
+        currentBackStackEntry?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) ?: true
 
     private fun NavController.navUpWithResult(
         navigationCommand: NavigationCommand.NavigateUpWithResult<*>,
