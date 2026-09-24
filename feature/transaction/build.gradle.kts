@@ -15,4 +15,6 @@ dependencies {
     implementation(project(":feature:category"))
     implementation(project(":feature:account"))
     implementation(project(":feature:filter"))
+
+    implementation(libs.pdfbox.android)
 }

@@ -97,3 +97,6 @@ lint/tmp/
 #Keys
 keys
 
+# Local supervisor tooling state (relay checkpoints/bundles)
+.supervisor/
+
