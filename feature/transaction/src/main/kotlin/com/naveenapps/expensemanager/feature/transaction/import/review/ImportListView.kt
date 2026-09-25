@@ -86,7 +86,18 @@ fun ImportListView(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 2,
                             )
-                            if (!draft.isImportable) {
+                            if (!draft.parsed.isSuccess) {
+                                ImportStatusLabel(
+                                    text = stringResource(R.string.import_bank_failed_title),
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                                Text(
+                                    text = stringResource(R.string.import_bank_failed_detail),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                            } else if (!draft.isImportable) {
                                 ImportStatusLabel(
                                     text = stringResource(R.string.import_unavailable),
                                     containerColor = MaterialTheme.colorScheme.errorContainer,

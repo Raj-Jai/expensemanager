@@ -161,6 +161,10 @@ class ImportViewModel(
             }
 
             ImportAction.ConfirmSelected -> saveSelected()
+            ImportAction.ClearLastAction -> {
+                undoStack.clear()
+                _state.update { it.copy(lastAction = null, canUndo = false) }
+            }
             is ImportAction.ShowAccountSelection -> updateDraft(action.draftId) {
                 it.copy(showAccountSelection = true)
             }
