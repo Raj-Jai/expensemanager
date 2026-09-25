@@ -55,7 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.naveenapps.expensemanager.core.designsystem.ui.components.ExpenseManagerTopAppBar
 import com.naveenapps.expensemanager.feature.transaction.R
-import com.naveenapps.expensemanager.feature.transaction.import.parser.BhimPdfTextExtractor
+import com.naveenapps.expensemanager.feature.transaction.import.parser.StatementPdfTextExtractor
 import com.naveenapps.expensemanager.feature.transaction.import.parser.PdfExtractResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -79,7 +79,7 @@ fun ImportTransactionsScreen(
             viewModel.processAction(ImportAction.StartParsing)
             scope.launch {
                 val result = withContext(Dispatchers.IO) {
-                    BhimPdfTextExtractor.extractText(context, uri)
+                    StatementPdfTextExtractor.extractText(context, uri)
                 }
                 when (result) {
                     is PdfExtractResult.Text -> {

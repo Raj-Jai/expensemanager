@@ -19,6 +19,12 @@ data class ParsedTransaction(
     val status: String,
     val rawText: String = "",
     val parseError: String? = null,
+    /**
+     * The source statement listed a date but no time of day (an SBI YONO
+     * account statement, for example). Duplicate detection widens to the whole
+     * day for these rows instead of requiring an exact timestamp match.
+     */
+    val isDateOnly: Boolean = false,
 ) {
     val isSuccess: Boolean
         get() = status.equals("SUCCESS", ignoreCase = true)

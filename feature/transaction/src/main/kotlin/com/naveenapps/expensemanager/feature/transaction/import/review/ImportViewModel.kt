@@ -20,6 +20,7 @@ import com.naveenapps.expensemanager.core.navigation.AppComposeNavigator
 import com.naveenapps.expensemanager.core.repository.TransactionRepository
 import com.naveenapps.expensemanager.core.settings.domain.repository.NumberFormatRepository
 import com.naveenapps.expensemanager.feature.transaction.import.parser.BhimStatementParser
+import com.naveenapps.expensemanager.feature.transaction.import.parser.StatementParserResolver
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
+import java.util.Date
 import java.util.UUID
 
 class ImportViewModel(
@@ -41,7 +43,7 @@ class ImportViewModel(
     private val transactionRepository: TransactionRepository,
     private val numberFormatRepository: NumberFormatRepository,
     private val appComposeNavigator: AppComposeNavigator,
-    private val parser: BhimStatementParser = BhimStatementParser(),
+    private val parserResolver: StatementParserResolver = StatementParserResolver(),
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ImportState(isLoading = true))
@@ -207,6 +209,17 @@ class ImportViewModel(
     private fun onParsedText(text: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
+            val parser = parserResolver.select(text)
+            if (parser == null) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Could not recognise this statement. Supported formats: " +
+                            parserResolver.supportedFormats.joinToString(", ") + ".",
+                    )
+                }
+                return@launch
+            }
             val parsed = withContext(Dispatchers.Default) { parser.parse(text) }
             if (parsed.isEmpty()) {
                 _state.update {
@@ -298,8 +311,29 @@ class ImportViewModel(
         return existing.any { t ->
             t.type == parsed.transactionType &&
                 kotlin.math.abs(t.amount.amount - parsed.amount) < DUPLICATE_AMOUNT_TOLERANCE &&
-                t.createdOn == parsed.dateTime
+                matchesWhen(t.createdOn, parsed)
         }
+    }
+
+    /**
+     * Statements that print a time of day (BHIM) can only match an identical
+     * timestamp. Date-only statements (SBI YONO) carry no time, so requiring an
+     * exact match would never flag a re-imported row: they match anywhere on the
+     * same calendar day instead.
+     */
+    private fun matchesWhen(existing: Date, parsed: ParsedTransaction): Boolean {
+        return if (parsed.isDateOnly) {
+            isSameDay(existing, parsed.dateTime)
+        } else {
+            existing == parsed.dateTime
+        }
+    }
+
+    private fun isSameDay(a: Date, b: Date): Boolean {
+        val ca = Calendar.getInstance().apply { time = a }
+        val cb = Calendar.getInstance().apply { time = b }
+        return ca.get(Calendar.YEAR) == cb.get(Calendar.YEAR) &&
+            ca.get(Calendar.DAY_OF_YEAR) == cb.get(Calendar.DAY_OF_YEAR)
     }
 
     internal fun topCategoriesFor(
