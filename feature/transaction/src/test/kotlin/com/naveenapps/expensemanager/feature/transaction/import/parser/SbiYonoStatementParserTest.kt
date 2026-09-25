@@ -11,8 +11,10 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * Fixtures are verbatim text layers from a real SBI YONO "Statement of Account"
- * PDF, including the column padding and the indented description wraps.
+ * Fixtures reproduce the column layout, indentation and wrapping of a real
+ * statement - including the truncated description column and the transfer marker
+ * printed above its row - but every name, account number, reference, amount and
+ * date here is generated, not taken from a statement.
  */
 class SbiYonoStatementParserTest {
 
@@ -26,16 +28,16 @@ class SbiYonoStatementParserTest {
 
     private val withdrawalRow = """
         WDL TFR
-        01/06/2026   01/06/2026   UPI/DR/800000000101/MOCK MART         -       310.00         -      1,00,003.00
-                                   /CNRB/0000000000/NO R
-                                   0000000000000 AT 00000 TESTBR
+        01/06/2025   01/06/2025   UPI/DR/800000000001/ALPHA MART         -       111.11         -      12,34,567.89
+                                   /TESTBNK/MOCKSHOP/MOCK R
+                                   0000000000 AT 00000 TESTBR
     """.trimIndent()
 
     private val depositRow = """
         DEP TFR
-        01/06/2026   01/06/2026   UPI/CR/800000001010/MOCK MART         -          -         103.00   1,00,002.00
-                                   /SBIN/0000000000/Paym
-                                   0000000000000 AT 00000 TESTBR
+        01/06/2025   01/06/2025   UPI/CR/800000000002/BETA STORE         -          -         222.22   12,34,790.11
+                                   /TESTBNK/MOCKPAY/MOCK P
+                                   0000000001 AT 00000 TESTBR
     """.trimIndent()
 
     private fun startOfDay(date: String) = LocalDate.parse(date)
@@ -49,11 +51,11 @@ class SbiYonoStatementParserTest {
 
         assertThat(result).hasSize(1)
         val tx = result.first()
-        assertThat(tx.amount).isEqualTo(310.00)
+        assertThat(tx.amount).isEqualTo(111.11)
         assertThat(tx.transactionType).isEqualTo(TransactionType.EXPENSE)
         assertThat(tx.payOrCollect).isEqualTo("PAY")
-        assertThat(tx.referenceId).isEqualTo("800000000101")
-        assertThat(tx.receiverName).isEqualTo("MOCK MART")
+        assertThat(tx.referenceId).isEqualTo("800000000001")
+        assertThat(tx.receiverName).isEqualTo("ALPHA MART")
         assertThat(tx.senderName).isEmpty()
         assertThat(tx.bankName).isEqualTo("State Bank of India")
         assertThat(tx.status).isEqualTo("SUCCESS")
@@ -67,12 +69,12 @@ class SbiYonoStatementParserTest {
 
         assertThat(result).hasSize(1)
         val tx = result.first()
-        assertThat(tx.amount).isEqualTo(103.00)
+        assertThat(tx.amount).isEqualTo(222.22)
         assertThat(tx.transactionType).isEqualTo(TransactionType.INCOME)
         assertThat(tx.payOrCollect).isEqualTo("COLLECT")
-        assertThat(tx.senderName).isEqualTo("MOCK MART")
+        assertThat(tx.senderName).isEqualTo("BETA STORE")
         assertThat(tx.receiverName).isEmpty()
-        assertThat(tx.referenceId).isEqualTo("800000001010")
+        assertThat(tx.referenceId).isEqualTo("800000000002")
     }
 
     @Test
@@ -80,7 +82,7 @@ class SbiYonoStatementParserTest {
         val result = parser.parse("$statementHeader\n$withdrawalRow")
 
         val tx = result.first()
-        assertThat(tx.dateTime.time).isEqualTo(startOfDay("2026-06-01"))
+        assertThat(tx.dateTime.time).isEqualTo(startOfDay("2025-06-01"))
         assertThat(tx.isDateOnly).isTrue()
     }
 
@@ -99,66 +101,80 @@ class SbiYonoStatementParserTest {
         val text = "$statementHeader\n$withdrawalRow\n$depositRow"
         val result = parser.parse(text)
 
-        assertThat(result[0].rawText).contains("0000000000000 AT 00000 TESTBR")
-        assertThat(result[0].rawText).doesNotContain("MOCK MART")
-        assertThat(result[1].rawText).contains("0000000000000 AT 00000 TESTBR")
+        assertThat(result[0].rawText).contains("0000000000 AT 00000 TESTBR")
+        assertThat(result[0].rawText).doesNotContain("BETA STORE")
+        assertThat(result[1].rawText).contains("0000000001 AT 00000 TESTBR")
     }
 
     @Test
     fun `parses indian grouped amounts`() {
         val row = "WDL TFR\n" +
-            "04/06/2026   04/06/2026   UPI/DR/800000000707/MOCK MART P          -      1,00,004.00      -       1,00,007.00\n" +
-            "                                   N/SBIN/0000000000/Ren\n" +
-            "                                   0000000000000 AT 00000 TESTBR"
+            "04/06/2025   04/06/2025   UPI/DR/800000000003/GAMMA MART          -      20,000.00      -       1,00,007.00\n" +
+            "                                   /TESTBNK/MOCKPAY/MOCK R\n" +
+            "                                   0000000002 AT 00000 TESTBR"
 
         val result = parser.parse("$statementHeader\n$row")
 
         assertThat(result).hasSize(1)
-        assertThat(result.first().amount).isEqualTo(25000.00)
+        assertThat(result.first().amount).isEqualTo(20000.00)
     }
 
     @Test
     fun `transfer marker decides direction when description ends with a dash`() {
         val row = "WDL TFR\n" +
-            "05/06/2026   05/06/2026   ATM WDL -                            -       500.00         -       1,00,006.00"
+            "05/06/2025   05/06/2025   ATM WDL -                            -       777.77         -       1,00,006.00"
 
         val result = parser.parse("$statementHeader\n$row")
 
         assertThat(result).hasSize(1)
         val tx = result.first()
-        assertThat(tx.amount).isEqualTo(500.00)
+        assertThat(tx.amount).isEqualTo(777.77)
         assertThat(tx.transactionType).isEqualTo(TransactionType.EXPENSE)
     }
 
     @Test
     fun `parses neft row beneficiary and urn`() {
         val row = "DEP TFR\n" +
-            "09/06/2026   09/06/2026   NEFT*RBIS0PFMS01*RBISH00637          -          -       1,00,001.00   1,00,008.00\n" +
-            "                                   704380*SAMPLE VENDOR*B\n" +
-            "                                   0000000000000 AT 00000 TESTBR"
+            "09/06/2025   09/06/2025   NEFT*TESTBNK01*TESTREF001          -          -       1,500.00   1,00,008.00\n" +
+            "                                   000001*MOCK VENDOR LTD*T\n" +
+            "                                   0000000003 AT 00000 TESTBR"
 
         val result = parser.parse("$statementHeader\n$row")
 
         assertThat(result).hasSize(1)
         val tx = result.first()
-        assertThat(tx.amount).isEqualTo(1000.00)
+        assertThat(tx.amount).isEqualTo(1500.00)
         assertThat(tx.transactionType).isEqualTo(TransactionType.INCOME)
-        assertThat(tx.senderName).isEqualTo("SAMPLE VENDOR")
-        assertThat(tx.referenceId).isEqualTo("RBIS0PFMS01*RBISH00637")
+        assertThat(tx.senderName).isEqualTo("MOCK VENDOR LTD")
+        assertThat(tx.referenceId).isEqualTo("TESTBNK01*TESTREF001")
     }
 
     @Test
     fun `row without transfer marker is read from the money columns`() {
-        val row = "25/06/2026   25/06/2026   INTEREST CREDIT                         -         -         520.00      1,00,005.00"
+        val row = "25/06/2025   25/06/2025   INTEREST CREDIT                         -         -         555.00      1,00,005.00"
 
         val result = parser.parse("$statementHeader\n$row")
 
         assertThat(result).hasSize(1)
         val tx = result.first()
-        assertThat(tx.amount).isEqualTo(520.00)
+        assertThat(tx.amount).isEqualTo(555.00)
         assertThat(tx.transactionType).isEqualTo(TransactionType.INCOME)
         assertThat(tx.senderName).isEqualTo("INTEREST CREDIT")
         assertThat(tx.referenceId).isEmpty()
+    }
+
+    @Test
+    fun `non transfer credit is read from the description`() {
+        val row = "06/07/2025   06/07/2025   MOCKBANK0001234                    -          -        66.00      3,10,965.46\n" +
+            "                                   SAMPLE DIV 2025"
+
+        val result = parser.parse("$statementHeader\n$row")
+
+        assertThat(result).hasSize(1)
+        val tx = result.first()
+        assertThat(tx.amount).isEqualTo(66.00)
+        assertThat(tx.transactionType).isEqualTo(TransactionType.INCOME)
+        assertThat(tx.senderName).contains("SAMPLE DIV")
     }
 
     @Test
@@ -179,7 +195,7 @@ class SbiYonoStatementParserTest {
 
         assertThat(result).hasSize(2)
         assertThat(result.map { it.referenceId })
-            .containsExactly("800000000101", "800000001010").inOrder()
+            .containsExactly("800000000001", "800000000002").inOrder()
     }
 
     @Test
@@ -204,13 +220,13 @@ class SbiYonoStatementParserTest {
         val tx = result.first()
         assertThat(tx.senderVpa).isEqualTo("N/A")
         assertThat(tx.receiverVpa).isEqualTo("N/A")
-        assertThat(tx.defaultNotes).isEqualTo("MOCK MART Ref:800000000101 PAY")
+        assertThat(tx.defaultNotes).isEqualTo("ALPHA MART Ref:800000000001 PAY")
     }
 
     @Test
     fun `impossible date is flagged invalid instead of dropped`() {
         val row = "WDL TFR\n" +
-            "31/02/2026   31/02/2026   UPI/DR/800000000101/MOCK MART        -       310.00         -      1,00,003.00"
+            "31/02/2025   31/02/2025   UPI/DR/800000000001/ALPHA MART        -       111.11         -      12,34,567.89"
 
         val result = parser.parse("$statementHeader\n$row")
 
@@ -220,7 +236,7 @@ class SbiYonoStatementParserTest {
 
     @Test
     fun `line without a money tail is not a transaction`() {
-        val text = "$statementHeader\n01/06/2026   01/06/2026   UPI/DR/800000000101/MOCK MART"
+        val text = "$statementHeader\n01/06/2025   01/06/2025   UPI/DR/800000000001/ALPHA MART"
 
         assertThat(parser.parse(text)).isEmpty()
     }
@@ -250,7 +266,7 @@ class SbiYonoStatementParserTest {
     @Test
     fun `concurrent parsing yields correct dates`() = runBlocking {
         val text = "$statementHeader\n$withdrawalRow"
-        val expected = startOfDay("2026-06-01")
+        val expected = startOfDay("2025-06-01")
 
         val results = (1..16).map {
             async(Dispatchers.Default) { parser.parse(text) }

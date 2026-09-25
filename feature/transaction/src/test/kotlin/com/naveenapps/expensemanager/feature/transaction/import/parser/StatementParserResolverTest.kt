@@ -7,16 +7,16 @@ class StatementParserResolverTest {
 
     private val bhimText = """
         Transaction History
-        Customer Mobile Number: +91XXXXXXXXX  Transaction History from 24/06/2026 to 24/09/2026
+        Customer Mobile Number: +91XXXXXXXXX  Transaction History from 24/06/2025 to 24/09/2025
         Date       Time             Bank Name           Account Number      Sender      Receiver      Payment ID/Reference Number   Pay/Collect   Amount (in Rs.)    DR/CR        Status
-        23/09/2026   01:38:31       State Bank Of India     XXXXXX0001                  mockparty03@upi(MOCK PARTY 02)                       mockparty05@oksbi(xxxxxxxxndal)                  800000000202              PAY             100.00          DR       SUCCESS
+        23/09/2025   01:38:31       State Bank Of India     XXXXXX0001                  mockholder01@upi(MOCK HOLDER)                       mockshop02@oksbi(MOCK SHOP)                  900000000001              PAY             111.11          DR       SUCCESS
     """.trimIndent()
 
     private val yonoText = """
         STATEMENT OF ACCOUNT
         State Bank of India
         WDL TFR
-        01/06/2026   01/06/2026   UPI/DR/800000000101/MOCK MART         -       310.00         -      1,00,003.00
+        01/06/2025   01/06/2025   UPI/DR/800000000001/ALPHA MART         -       111.11         -      12,34,567.89
     """.trimIndent()
 
     private val resolver = StatementParserResolver()
@@ -42,9 +42,9 @@ class StatementParserResolverTest {
         val yono = resolver.select(yonoText)?.parse(yonoText).orEmpty()
 
         assertThat(bhim).hasSize(1)
-        assertThat(bhim.first().amount).isEqualTo(100.0)
+        assertThat(bhim.first().amount).isEqualTo(111.11)
         assertThat(yono).hasSize(1)
-        assertThat(yono.first().amount).isEqualTo(310.0)
+        assertThat(yono.first().amount).isEqualTo(111.11)
     }
 
     @Test
