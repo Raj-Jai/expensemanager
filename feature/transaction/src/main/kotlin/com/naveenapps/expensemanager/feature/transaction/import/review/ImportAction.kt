@@ -11,6 +11,7 @@ sealed class ImportAction {
     data class ParsedTextReceived(val text: String) : ImportAction()
     data class ParseFailed(val message: String) : ImportAction()
     data object SwitchToCard : ImportAction()
+    data class OpenCard(val draftId: String) : ImportAction()
     data object SwitchToList : ImportAction()
     data object AcceptCurrent : ImportAction()
     data object RejectCurrent : ImportAction()

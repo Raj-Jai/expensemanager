@@ -21,12 +21,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.EditCalendar
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,6 +44,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,12 +62,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -67,7 +80,11 @@ import com.naveenapps.expensemanager.core.designsystem.ui.components.AppDatePick
 import com.naveenapps.expensemanager.core.designsystem.ui.components.AppTimePickerDialog
 import com.naveenapps.expensemanager.core.designsystem.ui.components.ClickableTextField
 import com.naveenapps.expensemanager.core.designsystem.ui.components.SafeModalBottomSheet
+import com.naveenapps.expensemanager.core.designsystem.ui.components.SettingsSection
+import com.naveenapps.expensemanager.core.model.Category
 import com.naveenapps.expensemanager.core.model.TransactionType
+import com.naveenapps.expensemanager.feature.account.selection.AccountItem
+import com.naveenapps.expensemanager.feature.account.selection.AccountItemDefaults
 import com.naveenapps.expensemanager.feature.account.selection.AccountSelectionScreen
 import com.naveenapps.expensemanager.feature.category.selection.CategorySelectionScreen
 import com.naveenapps.expensemanager.feature.transaction.R
@@ -158,6 +175,7 @@ fun ImportCardStack(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
+                    shape = MaterialTheme.shapes.medium,
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.padding(4.dp))
@@ -166,6 +184,7 @@ fun ImportCardStack(
                 Button(
                     onClick = { onAction(ImportAction.AcceptCurrent) },
                     modifier = Modifier.weight(1f),
+                    shape = MaterialTheme.shapes.medium,
                 ) {
                     Icon(imageVector = Icons.Default.Check, contentDescription = null)
                     Spacer(modifier = Modifier.padding(4.dp))
@@ -178,6 +197,7 @@ fun ImportCardStack(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error,
                     ),
+                    shape = MaterialTheme.shapes.medium,
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = null)
                     Spacer(modifier = Modifier.padding(4.dp))
@@ -259,7 +279,7 @@ private fun SwipeableImportCard(
                 .alpha(abs(swipeFraction).coerceIn(0f, 1f))
                 .background(
                     swipeBackgroundColor.copy(alpha = if (swipeBackgroundColor == Color.Transparent) 0f else 0.85f),
-                    androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    RoundedCornerShape(12.dp),
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -380,7 +400,6 @@ private fun EditableImportCardContent(
             AccountSelectionScreen(
                 accounts = state.accounts,
                 selectedAccount = draft.selectedAccount,
-                createNewCallback = {},
                 onItemSelection = { onAction(ImportAction.SelectAccount(draft.parsed.id, it)) },
             )
         }
@@ -398,7 +417,6 @@ private fun EditableImportCardContent(
                     }
                 }.ifEmpty { state.categories },
                 selectedCategory = draft.selectedCategory,
-                createNewCallback = {},
                 onItemSelection = { onAction(ImportAction.SelectCategory(draft.parsed.id, it)) },
             )
         }
@@ -485,115 +503,138 @@ private fun EditableImportCardContent(
             }
         }
 
-        Text(
-            text = stringResource(R.string.import_transaction_section),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        OutlinedTextField(
-            value = draft.amountText,
-            onValueChange = { onAction(ImportAction.UpdateAmount(draft.parsed.id, it)) },
-            label = { Text(stringResource(R.string.amount)) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = draft.parsed.isSuccess,
-            singleLine = true,
-        )
-
-        Text(
-            text = stringResource(R.string.import_classification_section),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        SettingsSection(
+            title = stringResource(R.string.import_classification_section),
         ) {
-            FilterChip(
-                modifier = Modifier.weight(1f),
-                selected = draft.transactionType == TransactionType.EXPENSE,
-                onClick = { onAction(ImportAction.UpdateType(draft.parsed.id, TransactionType.EXPENSE)) },
-                enabled = draft.parsed.isSuccess,
-                label = { Text(stringResource(R.string.expense)) },
-            )
-            FilterChip(
-                modifier = Modifier.weight(1f),
-                selected = draft.transactionType == TransactionType.INCOME,
-                onClick = { onAction(ImportAction.UpdateType(draft.parsed.id, TransactionType.INCOME)) },
-                enabled = draft.parsed.isSuccess,
-                label = { Text(stringResource(R.string.income)) },
-            )
-            OutlinedButton(
-                modifier = Modifier.weight(1.2f),
-                onClick = { onAction(ImportAction.ShowAccountSelection(draft.parsed.id)) },
-                enabled = draft.parsed.isSuccess,
-                contentPadding = PaddingValues(horizontal = 8.dp),
-            ) {
-                Text(
-                    text = draft.selectedAccount?.name ?: stringResource(R.string.select_account),
-                    maxLines = 1,
-                )
+            AppCardView {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                ) {
+                    ImportTransactionTypeSelector(
+                        selectedType = draft.transactionType,
+                        enabled = draft.parsed.isSuccess,
+                        onTypeChange = {
+                            onAction(ImportAction.UpdateType(draft.parsed.id, it))
+                        },
+                    )
+                }
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            ClickableTextField(
-                modifier = Modifier
-                    .weight(1f)
-                    .alpha(if (draft.parsed.isSuccess) 1f else 0.6f),
-                value = draft.dateTime.toCompleteDateWithDate(),
-                label = R.string.select_date,
-                leadingIcon = null,
-                onClick = {
-                    if (draft.parsed.isSuccess) {
-                        onAction(ImportAction.ShowDateSelection(draft.parsed.id))
+        SettingsSection(title = stringResource(R.string.details)) {
+            AppCardView {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    OutlinedTextField(
+                        value = draft.amountText,
+                        onValueChange = {
+                            onAction(ImportAction.UpdateAmount(draft.parsed.id, it))
+                        },
+                        label = { Text(stringResource(R.string.amount)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = draft.parsed.isSuccess,
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        ClickableTextField(
+                            modifier = Modifier
+                                .weight(1f)
+                                .alpha(if (draft.parsed.isSuccess) 1f else 0.6f),
+                            value = draft.dateTime.toCompleteDateWithDate(),
+                            label = R.string.select_date,
+                            leadingIcon = Icons.Outlined.EditCalendar,
+                            onClick = {
+                                if (draft.parsed.isSuccess) {
+                                    onAction(ImportAction.ShowDateSelection(draft.parsed.id))
+                                }
+                            },
+                        )
+                        ClickableTextField(
+                            modifier = Modifier
+                                .weight(1f)
+                                .alpha(if (draft.parsed.isSuccess) 1f else 0.6f),
+                            value = draft.dateTime.toTimeAndMinutes(),
+                            label = R.string.select_time,
+                            leadingIcon = Icons.Outlined.AccessTime,
+                            onClick = {
+                                if (draft.parsed.isSuccess) {
+                                    onAction(ImportAction.ShowTimeSelection(draft.parsed.id))
+                                }
+                            },
+                        )
                     }
+
+                    OutlinedTextField(
+                        value = draft.notes,
+                        onValueChange = {
+                            onAction(ImportAction.UpdateNotes(draft.parsed.id, it))
+                        },
+                        label = { Text(stringResource(R.string.notes)) },
+                        placeholder = { Text(stringResource(R.string.optional_details)) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Notes,
+                                contentDescription = null,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = draft.parsed.isSuccess,
+                        maxLines = if (isCompact) 2 else 3,
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                }
+            }
+        }
+
+        SettingsSection(title = stringResource(R.string.select_category)) {
+            ImportCategoryShortcuts(
+                draft = draft,
+                categories = if (draft.transactionType == TransactionType.INCOME) {
+                    state.topIncomeCategories
+                } else {
+                    state.topExpenseCategories
                 },
+                onAction = onAction,
             )
-            ClickableTextField(
+        }
+
+        SettingsSection(title = stringResource(R.string.select_account)) {
+            AccountItem(
+                name = draft.selectedAccount?.name ?: stringResource(R.string.select_account),
+                icon = draft.selectedAccount?.storedIcon?.name ?: "account_balance_wallet",
+                iconBackgroundColor = draft.selectedAccount?.storedIcon?.backgroundColor ?: "#DBEAFE",
+                customImagePath = draft.selectedAccount?.storedIcon?.customImagePath,
+                amount = draft.selectedAccount?.amount?.amountString,
+                amountTextColor = draft.selectedAccount?.amountTextColor,
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .alpha(if (draft.parsed.isSuccess) 1f else 0.6f),
-                value = draft.dateTime.toTimeAndMinutes(),
-                label = R.string.select_time,
-                leadingIcon = null,
-                onClick = {
-                    if (draft.parsed.isSuccess) {
-                        onAction(ImportAction.ShowTimeSelection(draft.parsed.id))
-                    }
+                onClick = if (draft.parsed.isSuccess) {
+                    { onAction(ImportAction.ShowAccountSelection(draft.parsed.id)) }
+                } else {
+                    null
+                },
+                trailingContent = {
+                    AccountItemDefaults.ChevronTrailing()
                 },
             )
         }
 
-        QuickCategoryPicker(
-            draft = draft,
-            state = state,
-            onAction = onAction,
-            enabled = draft.parsed.isSuccess,
-        )
-
-        Text(
-            text = stringResource(R.string.import_notes_section),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        OutlinedTextField(
-            value = draft.notes,
-            onValueChange = { onAction(ImportAction.UpdateNotes(draft.parsed.id, it)) },
-            label = { Text(stringResource(R.string.notes)) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = draft.parsed.isSuccess,
-            maxLines = if (isCompact) 2 else 3,
-        )
-
         TextButton(
             onClick = { showTransactionDetails = !showTransactionDetails },
-            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
         ) {
             Text(
                 text = if (showTransactionDetails) {
@@ -601,6 +642,7 @@ private fun EditableImportCardContent(
                 } else {
                     stringResource(R.string.import_transaction_details)
                 },
+                style = MaterialTheme.typography.labelLarge,
             )
         }
 
@@ -622,97 +664,123 @@ private fun EditableImportCardContent(
 }
 
 @Composable
-private fun QuickCategoryPicker(
+private fun ImportCategoryShortcuts(
     draft: ImportDraft,
-    state: ImportState,
+    categories: List<Category>,
     onAction: (ImportAction) -> Unit,
-    enabled: Boolean,
 ) {
-    val quickList = if (draft.transactionType == TransactionType.INCOME) {
-        state.topIncomeCategories
-    } else {
-        state.topExpenseCategories
-    }
-    val visibleQuick = quickList.filter { it.id != draft.selectedCategory?.id }
+    val visibleCategories = categories.take(3)
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.top_categories),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Box(modifier = Modifier.fillMaxWidth()) {
-            androidx.compose.foundation.lazy.LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(end = 28.dp),
-            ) {
-            draft.selectedCategory?.let { selected ->
-                item(key = "selected_${selected.id}") {
-                    FilterChip(
-                        selected = true,
-                        onClick = {},
-                        enabled = enabled,
-                        label = {
-                            Text(
-                                selected.titleResId?.let { stringResource(it) }
-                                    ?: selected.name,
-                            )
-                        },
-                    )
-                }
-            }
-            items(
-                count = visibleQuick.size,
-                key = { index -> visibleQuick[index].id },
-            ) { index ->
-                val category = visibleQuick[index]
-                FilterChip(
-                    selected = false,
-                    onClick = {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        visibleCategories.forEach { category ->
+            FilterChip(
+                selected = category.id == draft.selectedCategory?.id,
+                onClick = {
+                    if (category.id != draft.selectedCategory?.id) {
                         onAction(ImportAction.SelectCategory(draft.parsed.id, category))
-                    },
-                    enabled = enabled,
-                    label = {
-                        Text(
-                            category.titleResId?.let { stringResource(it) }
-                                ?: category.name,
-                        )
-                    },
+                    }
+                },
+                enabled = draft.parsed.isSuccess,
+                label = {
+                    Text(
+                        text = category.titleResId?.let { stringResource(it) }
+                            ?: category.name,
+                        maxLines = 1,
+                    )
+                },
+            )
+        }
+        AssistChip(
+            onClick = {
+                onAction(ImportAction.ShowCategorySelection(draft.parsed.id))
+            },
+            enabled = draft.parsed.isSuccess,
+            label = { Text(stringResource(R.string.more_categories)) },
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.MoreHoriz,
+                    contentDescription = null,
                 )
-            }
-            item(key = "more") {
-                androidx.compose.material3.AssistChip(
-                    onClick = { onAction(ImportAction.ShowCategorySelection(draft.parsed.id)) },
-                    enabled = enabled,
-                    label = { Text(stringResource(R.string.more_categories)) },
-                    trailingIcon = {
+            },
+        )
+    }
+}
+
+@Composable
+private fun ImportTransactionTypeSelector(
+    selectedType: TransactionType,
+    enabled: Boolean,
+    onTypeChange: (TransactionType) -> Unit,
+) {
+    val types = listOf(
+        ImportTypeOption(
+            type = TransactionType.EXPENSE,
+            label = R.string.expense,
+            icon = Icons.AutoMirrored.Rounded.TrendingUp,
+            activeContainerColor = MaterialTheme.colorScheme.errorContainer,
+            activeContentColor = MaterialTheme.colorScheme.onErrorContainer,
+            activeBorderColor = MaterialTheme.colorScheme.error,
+        ),
+        ImportTypeOption(
+            type = TransactionType.INCOME,
+            label = R.string.income,
+            icon = Icons.AutoMirrored.Rounded.TrendingDown,
+            activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            activeBorderColor = MaterialTheme.colorScheme.primary,
+        ),
+    )
+    val selectedColor = types.first { it.type == selectedType }.activeBorderColor
+
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        types.forEachIndexed { index, option ->
+            val selected = selectedType == option.type
+            SegmentedButton(
+                selected = selected,
+                onClick = { onTypeChange(option.type) },
+                enabled = enabled,
+                shape = SegmentedButtonDefaults.itemShape(index, types.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = option.activeContainerColor,
+                    activeContentColor = option.activeContentColor,
+                    activeBorderColor = option.activeBorderColor,
+                ),
+                border = SegmentedButtonDefaults.borderStroke(color = selectedColor),
+                icon = {
+                    SegmentedButtonDefaults.Icon(active = selected) {
                         Icon(
-                            imageVector = Icons.Default.MoreHoriz,
+                            imageVector = option.icon,
                             contentDescription = null,
+                            modifier = Modifier.width(18.dp),
                         )
-                    },
-                )
-            }
-            }
-            // Scroll affordance: fading edge hints the row continues.
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .width(28.dp)
-                    .height(32.dp)
-                    .background(
-                        androidx.compose.ui.graphics.Brush.horizontalGradient(
-                            listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.surface,
-                            ),
-                        ),
-                    ),
+                    }
+                },
+                label = {
+                    Text(
+                        text = stringResource(option.label),
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        maxLines = 1,
+                    )
+                },
             )
         }
     }
 }
+
+private data class ImportTypeOption(
+    val type: TransactionType,
+    val label: Int,
+    val icon: ImageVector,
+    val activeContainerColor: Color,
+    val activeContentColor: Color,
+    val activeBorderColor: Color,
+)
 
 private fun mergeDateAndTime(datePart: Date, timePart: Date): Date {    val dateCal = Calendar.getInstance().apply { time = datePart }
     val timeCal = Calendar.getInstance().apply { time = timePart }
