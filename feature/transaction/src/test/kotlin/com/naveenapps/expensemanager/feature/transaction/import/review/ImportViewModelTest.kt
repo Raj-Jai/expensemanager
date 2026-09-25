@@ -156,6 +156,64 @@ class ImportViewModelTest : BaseCoroutineTest() {
     }
 
     @Test
+    fun `valid selection count excludes unavailable rows`() {
+        val available = draftFor(parsedWith("SUCCESS")).copy(isSelected = true)
+        val unavailable = draftFor(parsedWith("FAILURE")).copy(isSelected = true)
+        val state = ImportState(
+            drafts = listOf(available, unavailable),
+            acceptedCount = 1,
+            rejectedCount = 0,
+        )
+
+        assertThat(state.validSelectedCount).isEqualTo(1)
+        assertThat(state.readyCount).isEqualTo(1)
+        assertThat(state.unavailableCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `bulk confirmation is disabled without valid selection or while saving`() {
+        val available = draftFor(parsedWith("SUCCESS")).copy(isSelected = true)
+        val unavailable = draftFor(parsedWith("FAILURE")).copy(isSelected = true)
+
+        assertThat(ImportState(drafts = listOf(available, unavailable)).canConfirmSelection).isTrue()
+        assertThat(ImportState(drafts = listOf(unavailable)).canConfirmSelection).isFalse()
+        assertThat(
+            ImportState(
+                drafts = listOf(available),
+                isSaving = true,
+            ).canConfirmSelection,
+        ).isFalse()
+    }
+
+    @Test
+    fun `view mode switching preserves review state`() {
+        val vm = createViewModel()
+
+        vm.processAction(ImportAction.SwitchToList)
+        assertThat(vm.state.value.viewMode).isEqualTo(ImportViewMode.LIST)
+
+        vm.processAction(ImportAction.SwitchToCard)
+        assertThat(vm.state.value.viewMode).isEqualTo(ImportViewMode.CARD)
+    }
+
+    @Test
+    fun `review progress uses accepted and rejected counts`() {
+        val state = ImportState(
+            drafts = listOf(
+                draftFor(parsedWith("SUCCESS")),
+                draftFor(parsedWith("SUCCESS")),
+                draftFor(parsedWith("FAILURE")),
+                draftFor(parsedWith("FAILURE")),
+            ),
+            acceptedCount = 1,
+            rejectedCount = 1,
+        )
+
+        assertThat(state.reviewedCount).isEqualTo(2)
+        assertThat(state.reviewProgress).isEqualTo(0.5f)
+    }
+
+    @Test
     fun `start parsing shows loading`() {
         val vm = createViewModel()
 

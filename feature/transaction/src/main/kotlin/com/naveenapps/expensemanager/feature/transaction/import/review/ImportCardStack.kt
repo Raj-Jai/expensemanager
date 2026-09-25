@@ -8,8 +8,10 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,10 +34,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +50,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.naveenapps.expensemanager.core.common.utils.toCompleteDateWithDate
@@ -76,11 +86,22 @@ fun ImportCardStack(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "All reviewed — ${state.acceptedCount} added, ${state.rejectedCount} skipped.",
+                text = stringResource(
+                    R.string.import_all_reviewed,
+                    state.acceptedCount,
+                    state.rejectedCount,
+                ),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
         return
+    }
+
+    var showSwipeHint by rememberSaveable { mutableStateOf(true) }
+    LaunchedEffect(state.currentIndex) {
+        if (state.currentIndex > 0) {
+            showSwipeHint = false
+        }
     }
 
     Column(
@@ -97,6 +118,16 @@ fun ImportCardStack(
                         MaterialTheme.colorScheme.surfaceVariant,
                         androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
                     ),
+            )
+        }
+
+        if (showSwipeHint) {
+            Text(
+                text = stringResource(R.string.import_swipe_hint),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
         }
 
@@ -143,6 +174,8 @@ private fun SwipeableImportCard(
     onAction: (ImportAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val addAccessibilityLabel = stringResource(R.string.add)
+    val skipAccessibilityLabel = stringResource(R.string.reject)
     val density = LocalDensity.current
     val swipeThreshold = with(density) { 120.dp.toPx() }
     var rawOffset by remember(draft.parsed.id, state.currentIndex) { mutableFloatStateOf(0f) }
@@ -152,32 +185,61 @@ private fun SwipeableImportCard(
         label = "import_swipe",
     )
     val swipeFraction = (animatedOffset / swipeThreshold).coerceIn(-1f, 1f)
+    val swipeBackgroundColor = when {
+        swipeFraction > 0.1f -> MaterialTheme.colorScheme.primary
+        swipeFraction < -0.1f -> MaterialTheme.colorScheme.error
+        else -> Color.Transparent
+    }
+    val swipeContentColor = when {
+        swipeFraction > 0.1f -> MaterialTheme.colorScheme.onPrimary
+        swipeFraction < -0.1f -> MaterialTheme.colorScheme.onError
+        else -> Color.Transparent
+    }
 
-    Box(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction(addAccessibilityLabel) {
+                        onAction(ImportAction.AcceptCurrent)
+                        true
+                    },
+                    CustomAccessibilityAction(skipAccessibilityLabel) {
+                        onAction(ImportAction.RejectCurrent)
+                        true
+                    },
+                )
+            },
+    ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .alpha(abs(swipeFraction).coerceIn(0f, 1f))
                 .background(
-                    when {
-                        swipeFraction > 0.1f -> Color(0xFF2E7D32).copy(alpha = 0.85f)
-                        swipeFraction < -0.1f -> Color(0xFFC62828).copy(alpha = 0.85f)
-                        else -> Color.Transparent
-                    },
+                    swipeBackgroundColor.copy(alpha = if (swipeBackgroundColor == Color.Transparent) 0f else 0.85f),
                     androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = if (swipeFraction > 0) "ADD" else if (swipeFraction < 0) "SKIP" else "",
+                text = if (swipeFraction > 0) {
+                    stringResource(R.string.add)
+                } else if (swipeFraction < 0) {
+                    stringResource(R.string.reject)
+                } else {
+                    ""
+                },
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color.White,
+                color = swipeContentColor,
             )
         }
 
         AppCardView(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .offset { IntOffset(animatedOffset.roundToInt(), 0) }
                 .pointerInput(draft.parsed.id, state.currentIndex) {
                     detectHorizontalDragGestures(
@@ -218,6 +280,7 @@ private fun EditableImportCardContent(
     onAction: (ImportAction) -> Unit,
 ) {
     val scroll = rememberScrollState()
+    var showTransactionDetails by rememberSaveable(draft.parsed.id) { mutableStateOf(false) }
 
     if (draft.showDateSelection) {
         AppDatePickerDialog(
@@ -284,18 +347,47 @@ private fun EditableImportCardContent(
             .verticalScroll(scroll),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = draft.parsed.counterpartyName,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+            )
+            Text(
+                text = stringResource(
+                    R.string.import_transaction_identity_format,
+                    draft.dateTime.toCompleteDateWithDate(),
+                    draft.dateTime.toTimeAndMinutes(),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         if (draft.isDuplicate) {
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 ),
             ) {
-                Text(
-                    text = stringResource(R.string.already_exists),
+                Column(
                     modifier = Modifier.padding(8.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.import_possible_duplicate),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                    Text(
+                        text = stringResource(R.string.import_duplicate_detail),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    )
+                }
             }
         }
         val parseError: String? = draft.parsed.parseError
@@ -308,7 +400,7 @@ private fun EditableImportCardContent(
         }
         if (!draft.parsed.isSuccess) {
             Text(
-                text = "Bank status: ${draft.parsed.status} — review carefully",
+                text = stringResource(R.string.import_bank_status_review, draft.parsed.status),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -371,18 +463,40 @@ private fun EditableImportCardContent(
             onAction = onAction,
         )
 
+        TextButton(
+            onClick = { showTransactionDetails = !showTransactionDetails },
+            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp),
+        ) {
+            Text(
+                text = if (showTransactionDetails) {
+                    stringResource(R.string.import_hide_transaction_details)
+                } else {
+                    stringResource(R.string.import_transaction_details)
+                },
+            )
+        }
+
+        if (showTransactionDetails) {
+            Text(
+                text = stringResource(
+                    R.string.import_transaction_details_format,
+                    draft.parsed.counterpartyName,
+                    draft.parsed.counterpartyVpa,
+                    draft.parsed.bankName,
+                    draft.parsed.accountNumber,
+                    draft.parsed.referenceId,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         OutlinedTextField(
             value = draft.notes,
             onValueChange = { onAction(ImportAction.UpdateNotes(draft.parsed.id, it)) },
             label = { Text(stringResource(R.string.notes)) },
             modifier = Modifier.fillMaxWidth(),
             maxLines = 3,
-        )
-
-        Text(
-            text = "${stringResource(R.string.counterparty)}: ${draft.parsed.counterpartyName} ${draft.parsed.counterpartyVpa} • ${draft.parsed.bankName} ${draft.parsed.accountNumber} • Ref:${draft.parsed.referenceId}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

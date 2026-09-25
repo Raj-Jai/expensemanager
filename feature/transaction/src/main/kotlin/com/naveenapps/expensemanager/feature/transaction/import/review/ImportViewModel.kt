@@ -233,7 +233,9 @@ class ImportViewModel(
                     selectedAccount = defaultAccount,
                     selectedCategory = category,
                     isDuplicate = isDuplicate(p, existing),
-                    isSelected = p.isSuccess && p.parseError == null,
+                    // Opt-in: nothing is selected until the user swipes
+                    // right / taps Add (or uses Select all).
+                    isSelected = false,
                 )
             }
             undoStack.clear()
@@ -245,7 +247,7 @@ class ImportViewModel(
                     acceptedCount = 0,
                     rejectedCount = 0,
                     canUndo = false,
-                    lastActionLabel = null,
+                    lastAction = null,
                     topExpenseCategories = topCategoriesFor(
                         TransactionType.EXPENSE,
                         existing,
@@ -325,7 +327,7 @@ class ImportViewModel(
             it.copy(
                 currentIndex = (it.currentIndex + 1).coerceAtMost(it.drafts.size),
                 acceptedCount = it.acceptedCount + 1,
-                lastActionLabel = "Added",
+                lastAction = ImportReviewAction.ADDED,
                 canUndo = true,
             )
         }
@@ -340,7 +342,7 @@ class ImportViewModel(
             it.copy(
                 currentIndex = (it.currentIndex + 1).coerceAtMost(it.drafts.size),
                 rejectedCount = it.rejectedCount + 1,
-                lastActionLabel = "Skipped",
+                lastAction = ImportReviewAction.SKIPPED,
                 canUndo = true,
             )
         }
@@ -352,9 +354,9 @@ class ImportViewModel(
         _state.update {
             it.copy(
                 currentIndex = entry.index,
-                acceptedCount = if (it.lastActionLabel == "Added") (it.acceptedCount - 1).coerceAtLeast(0) else it.acceptedCount,
-                rejectedCount = if (it.lastActionLabel == "Skipped") (it.rejectedCount - 1).coerceAtLeast(0) else it.rejectedCount,
-                lastActionLabel = null,
+                acceptedCount = if (it.lastAction == ImportReviewAction.ADDED) (it.acceptedCount - 1).coerceAtLeast(0) else it.acceptedCount,
+                rejectedCount = if (it.lastAction == ImportReviewAction.SKIPPED) (it.rejectedCount - 1).coerceAtLeast(0) else it.rejectedCount,
+                lastAction = null,
                 canUndo = undoStack.isNotEmpty(),
             )
         }

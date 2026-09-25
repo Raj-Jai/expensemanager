@@ -6,28 +6,34 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -36,6 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -61,11 +69,8 @@ fun ImportTransactionsScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri: Uri? ->
         if (uri != null) {
-            // Show the parsing indicator immediately: extraction + PDFBox
-            // work below can take several seconds with no other signal.
             viewModel.processAction(ImportAction.StartParsing)
             scope.launch {
-                // I/O + PDFBox work stays off the main thread.
                 val result = withContext(Dispatchers.IO) {
                     BhimPdfTextExtractor.extractText(context, uri)
                 }
@@ -82,12 +87,24 @@ fun ImportTransactionsScreen(
         }
     }
 
-    LaunchedEffect(state.lastActionLabel, state.currentIndex) {
-        state.lastActionLabel?.let { label ->
+    val reviewedProgressText = stringResource(
+        R.string.import_progress_format,
+        state.reviewedCount,
+        state.totalCount,
+    )
+    val undoLabel = stringResource(R.string.import_undo)
+    val lastActionMessage = when (state.lastAction) {
+        ImportReviewAction.ADDED -> stringResource(R.string.import_added)
+        ImportReviewAction.SKIPPED -> stringResource(R.string.import_skipped)
+        null -> null
+    }
+
+    LaunchedEffect(state.lastAction, state.currentIndex) {
+        lastActionMessage?.let { message ->
             scope.launch {
                 val result = snackbarHostState.showSnackbar(
-                    message = "$label ${state.progressText}",
-                    actionLabel = if (state.canUndo) "Undo" else null,
+                    message = "$message $reviewedProgressText",
+                    actionLabel = if (state.canUndo) undoLabel else null,
                     withDismissAction = true,
                 )
                 if (result == SnackbarResult.ActionPerformed) {
@@ -115,20 +132,16 @@ fun ImportTransactionsScreen(
                 title = stringResource(R.string.import_pdf_title),
             )
         },
-        floatingActionButton = {
-            if (state.drafts.isNotEmpty()) {
-                val selectedCount = state.drafts.count { it.isSelected }
-                ExtendedFloatingActionButton(
-                    onClick = { viewModel.processAction(ImportAction.ConfirmSelected) },
-                ) {
-                    Text(
-                        text = if (state.isSaving) {
-                            "Saving ${state.savedCount}/${state.saveTotal}…"
-                        } else {
-                            stringResource(R.string.import_fab_format, selectedCount)
-                        },
-                    )
-                }
+        bottomBar = {
+            if (state.drafts.isNotEmpty() && state.viewMode == ImportViewMode.LIST) {
+                ImportBottomBar(
+                    selectedCount = state.validSelectedCount,
+                    isSaving = state.isSaving,
+                    canConfirmSelection = state.canConfirmSelection,
+                    savedCount = state.savedCount,
+                    saveTotal = state.saveTotal,
+                    onImport = { viewModel.processAction(ImportAction.ConfirmSelected) },
+                )
             }
         },
     ) { innerPadding ->
@@ -139,7 +152,9 @@ fun ImportTransactionsScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .widthIn(max = 520.dp)
+                    .fillMaxHeight()
+                    .align(Alignment.TopCenter)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -151,102 +166,112 @@ fun ImportTransactionsScreen(
                                 .weight(1f),
                         )
                     } else {
-                        Text(
-                            text = stringResource(R.string.import_pdf_subtitle),
-                            style = MaterialTheme.typography.bodyMedium,
+                        EmptyImportState(onPickPdf = { pdfPicker.launch("application/pdf") })
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        FilterChip(
+                            selected = state.viewMode == ImportViewMode.CARD,
+                            onClick = { viewModel.processAction(ImportAction.SwitchToCard) },
+                            label = { Text(stringResource(R.string.card_view)) },
                         )
-                        Button(
-                            onClick = { pdfPicker.launch("application/pdf") },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(text = stringResource(R.string.pick_pdf))
-                        }
+                        FilterChip(
+                            selected = state.viewMode == ImportViewMode.LIST,
+                            onClick = { viewModel.processAction(ImportAction.SwitchToList) },
+                            label = { Text(stringResource(R.string.list_view)) },
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = stringResource(R.string.no_parsed_transactions),
+                            text = reviewedProgressText,
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+
+                    LinearProgressIndicator(
+                        progress = { state.reviewProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(MaterialTheme.shapes.small),
+                        strokeCap = StrokeCap.Round,
+                        drawStopIndicator = {},
+                    )
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.import_ready_summary,
+                                state.readyCount,
+                                state.unavailableCount,
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Text(
+                            text = stringResource(
+                                R.string.import_review_summary,
+                                state.acceptedCount,
+                                state.rejectedCount,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (state.duplicateCount > 0) {
+                            Text(
+                                text = stringResource(R.string.import_duplicate_summary, state.duplicateCount),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
                     }
-                } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    FilterChip(
-                        selected = state.viewMode == ImportViewMode.CARD,
-                        onClick = { viewModel.processAction(ImportAction.SwitchToCard) },
-                        label = { Text(stringResource(R.string.card_view)) },
-                    )
-                    FilterChip(
-                        selected = state.viewMode == ImportViewMode.LIST,
-                        onClick = { viewModel.processAction(ImportAction.SwitchToList) },
-                        label = { Text(stringResource(R.string.list_view)) },
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = state.progressText,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
 
-                val skippedCount = state.drafts.count { !it.isImportable }
-                if (skippedCount > 0) {
-                    Text(
-                        text = stringResource(
-                            R.string.importable_status,
-                            state.drafts.size - skippedCount,
-                            skippedCount,
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                    )
-                }
+                    TextButton(
+                        onClick = { pdfPicker.launch("application/pdf") },
+                        modifier = Modifier.align(Alignment.End),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                    ) {
+                        Text(text = stringResource(R.string.import_replace_pdf))
+                    }
 
-                OutlinedButton(
-                    onClick = { pdfPicker.launch("application/pdf") },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(text = stringResource(R.string.pick_pdf))
-                }
-
-                if (!state.duplicateCheckAvailable) {
-                    Text(
-                        text = "Duplicate check unavailable — please review carefully.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-
-                when (state.viewMode) {
-                    ImportViewMode.CARD -> {
-                        ImportCardStack(
-                            state = state,
-                            onAction = viewModel::processAction,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
+                    if (!state.duplicateCheckAvailable) {
+                        Text(
+                            text = stringResource(R.string.import_duplicate_check_unavailable),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
 
-                    ImportViewMode.LIST -> {
-                        ImportListView(
-                            state = state,
-                            onAction = viewModel::processAction,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                        )
+                    when (state.viewMode) {
+                        ImportViewMode.CARD -> {
+                            ImportCardStack(
+                                state = state,
+                                onAction = viewModel::processAction,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                            )
+                        }
+
+                        ImportViewMode.LIST -> {
+                            ImportListView(
+                                state = state,
+                                onAction = viewModel::processAction,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                            )
+                        }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(72.dp))
-            }
             }
 
-            // Modal parsing overlay for re-picks while drafts are shown.
             if (state.isLoading && state.drafts.isNotEmpty()) {
                 androidx.compose.foundation.layout.Box(
                     modifier = Modifier
@@ -254,10 +279,99 @@ fun ImportTransactionsScreen(
                         .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    androidx.compose.material3.Card {
+                    Card {
                         ParsingIndicator(modifier = Modifier.padding(24.dp))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyImportState(onPickPdf: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Upload,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.import_empty_title),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.import_empty_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(
+            onClick = onPickPdf,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = 14.dp),
+        ) {
+            Text(text = stringResource(R.string.pick_pdf))
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        Surface(
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            shape = MaterialTheme.shapes.medium,
+        ) {
+            Text(
+                text = stringResource(R.string.import_privacy_note),
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImportBottomBar(
+    selectedCount: Int,
+    isSaving: Boolean,
+    canConfirmSelection: Boolean,
+    savedCount: Int,
+    saveTotal: Int,
+    onImport: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 3.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.import_selected_count, selectedCount),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Button(
+                onClick = onImport,
+                enabled = canConfirmSelection,
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            ) {
+                Text(
+                    text = if (isSaving) {
+                        stringResource(R.string.import_saving_progress, savedCount, saveTotal)
+                    } else {
+                        stringResource(R.string.import_selected)
+                    },
+                )
             }
         }
     }
