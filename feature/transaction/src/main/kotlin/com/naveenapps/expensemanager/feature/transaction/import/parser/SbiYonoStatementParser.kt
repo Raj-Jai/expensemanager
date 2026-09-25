@@ -17,9 +17,9 @@ import java.util.Locale
  * followed by a description and the trailing money columns:
  *
  * ```
- * 01/06/2026  01/06/2026  UPI/DR/800000000101/MOCK MART  -  310.00  -  1,00,003.00
- *                           /CNRB/0000000000/NO R
- *                           0000000000000 AT 00000 TESTBR
+ * 01/06/2025  01/06/2025  UPI/DR/800000000001/ALPHA MART  -  111.11  -  12,34,567.89
+ *                           /TESTBNK/MOCKSHOP/MOCK REM
+ *                           0000000000 AT 00000 TESTBR
  * ```
  *
  * Four properties of the format drive the implementation:

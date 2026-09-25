@@ -89,9 +89,9 @@ class StatementPasswordStoreTest {
     fun write_overwritesAPreviousPassword() = runBlocking {
         store.write(password)
 
-        store.write("mock-statement-password")
+        store.write("another-mock-password")
 
-        assertThat(store.read()).isEqualTo("mock-statement-password")
+        assertThat(store.read()).isEqualTo("another-mock-password")
     }
 
     @Test
