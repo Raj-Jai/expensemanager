@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
-import java.util.Date
 import java.util.UUID
 
 class ImportViewModel(
@@ -297,9 +296,9 @@ class ImportViewModel(
         existing: List<Transaction>,
     ): Boolean {
         return existing.any { t ->
-            kotlin.math.abs(t.amount.amount - parsed.amount) < 0.005 &&
-                isSameDay(t.createdOn, parsed.dateTime) &&
-                t.notes.trim().equals(parsed.defaultNotes.trim(), ignoreCase = true)
+            t.type == parsed.transactionType &&
+                kotlin.math.abs(t.amount.amount - parsed.amount) < DUPLICATE_AMOUNT_TOLERANCE &&
+                t.createdOn == parsed.dateTime
         }
     }
 
@@ -318,13 +317,6 @@ class ImportViewModel(
             }
             .sortedByDescending { usage[it.id] ?: 0 }
             .take(MAX_QUICK_CATEGORIES)
-    }
-
-    private fun isSameDay(a: Date, b: Date): Boolean {
-        val ca = Calendar.getInstance().apply { time = a }
-        val cb = Calendar.getInstance().apply { time = b }
-        return ca.get(Calendar.YEAR) == cb.get(Calendar.YEAR) &&
-            ca.get(Calendar.DAY_OF_YEAR) == cb.get(Calendar.DAY_OF_YEAR)
     }
 
     private fun acceptCurrent() {
@@ -453,5 +445,6 @@ class ImportViewModel(
 
     companion object {
         const val MAX_QUICK_CATEGORIES = 5
+        private const val DUPLICATE_AMOUNT_TOLERANCE = 0.005
     }
 }

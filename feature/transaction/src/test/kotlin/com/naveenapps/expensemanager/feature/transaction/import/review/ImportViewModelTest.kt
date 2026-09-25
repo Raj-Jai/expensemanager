@@ -54,7 +54,7 @@ class ImportViewModelTest : BaseCoroutineTest() {
     }
 
     @Test
-    fun `duplicate detected on same amount date notes`() {
+    fun `duplicate detected on same amount and exact timestamp`() {
         val vm = createViewModel()
         val existing = FAKE_EXPENSE_TRANSACTION.copy(
             amount = Amount(100.0),
@@ -76,40 +76,63 @@ class ImportViewModelTest : BaseCoroutineTest() {
             status = "SUCCESS",
         )
 
-        val isDup = vm.isDuplicate(
-            parsed.copy(),
-            listOf(existing.copy(notes = "Wrong notes")),
-        )
-        assertThat(isDup).isFalse()
-
-        val parsedWithNotes = parsed.copy()
-        val existingMatching = existing.copy(notes = parsedWithNotes.defaultNotes)
-        assertThat(vm.isDuplicate(parsedWithNotes, listOf(existingMatching))).isTrue()
+        assertThat(vm.isDuplicate(parsed, listOf(existing.copy(notes = "Wrong notes")))).isTrue()
     }
 
     @Test
-    fun `amount tolerance treats near-equal as duplicate`() {        val vm = createViewModel()
+    fun `same day but different time is not a duplicate`() {
+        val vm = createViewModel()
         val base = Date(1_700_000_000_000L)
-        val parsed = ParsedTransaction(
-            amount = 100.004,
-            transactionType = TransactionType.EXPENSE,
-            dateTime = base,
-            senderVpa = "a",
-            senderName = "",
-            receiverVpa = "b",
-            receiverName = "Shop",
-            referenceId = "1",
-            bankName = "",
-            accountNumber = "",
-            payOrCollect = "PAY",
-            status = "SUCCESS",
+        val parsed = parsedWith(status = "SUCCESS").copy(amount = 100.0, dateTime = base)
+        val existing = FAKE_EXPENSE_TRANSACTION.copy(
+            amount = Amount(100.0),
+            createdOn = Date(base.time + 60_000L),
+            notes = parsed.defaultNotes,
         )
+        assertThat(vm.isDuplicate(parsed, listOf(existing))).isFalse()
+    }
+
+    @Test
+    fun `amount tolerance treats near-equal as duplicate`() {
+        val vm = createViewModel()
+        val base = Date(1_700_000_000_000L)
+        val parsed = parsedWith(status = "SUCCESS").copy(amount = 100.004, dateTime = base)
         val existing = FAKE_EXPENSE_TRANSACTION.copy(
             amount = Amount(100.0),
             createdOn = base,
-            notes = parsed.defaultNotes,
+            notes = "Different notes entirely",
         )
         assertThat(vm.isDuplicate(parsed, listOf(existing))).isTrue()
+    }
+
+    @Test
+    fun `different amount on same timestamp is not a duplicate`() {
+        val vm = createViewModel()
+        val base = Date(1_700_000_000_000L)
+        val parsed = parsedWith(status = "SUCCESS").copy(amount = 100.0, dateTime = base)
+        val existing = FAKE_EXPENSE_TRANSACTION.copy(
+            amount = Amount(150.0),
+            createdOn = base,
+            notes = parsed.defaultNotes,
+        )
+        assertThat(vm.isDuplicate(parsed, listOf(existing))).isFalse()
+    }
+
+    @Test
+    fun `same amount and timestamp but different type is not a duplicate`() {
+        val vm = createViewModel()
+        val base = Date(1_700_000_000_000L)
+        val parsedIncome = parsedWith(status = "SUCCESS").copy(
+            amount = 100.0,
+            dateTime = base,
+            transactionType = TransactionType.INCOME,
+        )
+        val existingExpense = FAKE_EXPENSE_TRANSACTION.copy(
+            amount = Amount(100.0),
+            createdOn = base,
+            notes = parsedIncome.defaultNotes,
+        )
+        assertThat(vm.isDuplicate(parsedIncome, listOf(existingExpense))).isFalse()
     }
 
     private fun draftFor(parsed: ParsedTransaction) = ImportDraft(
