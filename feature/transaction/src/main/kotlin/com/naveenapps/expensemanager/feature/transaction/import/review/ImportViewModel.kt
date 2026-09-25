@@ -203,6 +203,8 @@ class ImportViewModel(
             }
 
             ImportAction.ClearError -> _state.update { it.copy(errorMessage = null) }
+
+            ImportAction.ParsingFinished -> _state.update { it.copy(isLoading = false) }
         }
     }
 

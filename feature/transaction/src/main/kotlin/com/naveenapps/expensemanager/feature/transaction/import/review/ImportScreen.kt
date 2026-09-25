@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,7 +29,9 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -39,12 +42,15 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +58,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.naveenapps.expensemanager.core.designsystem.ui.components.ExpenseManagerTopAppBar
 import com.naveenapps.expensemanager.feature.transaction.R
@@ -71,27 +79,72 @@ fun ImportTransactionsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    // Held in memory only: the password is never persisted, logged or sent
+    // anywhere, and is dropped when the screen leaves composition.
+    var passwordPrompt by remember { mutableStateOf<PasswordPrompt?>(null) }
+    var passwordInput by remember { mutableStateOf("") }
+    var isUnlocking by remember { mutableStateOf(false) }
 
-    val pdfPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri: Uri? ->
-        if (uri != null) {
+    fun extractAndParse(uri: Uri, password: String?) {
+        scope.launch {
             viewModel.processAction(ImportAction.StartParsing)
-            scope.launch {
-                val result = withContext(Dispatchers.IO) {
-                    StatementPdfTextExtractor.extractText(context, uri)
+            val result = withContext(Dispatchers.IO) {
+                StatementPdfTextExtractor.extractText(context, uri, password)
+            }
+            when (result) {
+                is PdfExtractResult.Text -> {
+                    passwordPrompt = null
+                    passwordInput = ""
+                    isUnlocking = false
+                    viewModel.processAction(ImportAction.ParsedTextReceived(result.text))
                 }
-                when (result) {
-                    is PdfExtractResult.Text -> {
-                        viewModel.processAction(ImportAction.ParsedTextReceived(result.text))
-                    }
 
-                    is PdfExtractResult.Failure -> {
+                is PdfExtractResult.Failure -> {
+                    isUnlocking = false
+                    if (result.needsPassword) {
+                        // Keep the uri so Unlock can retry the same document.
+                        passwordPrompt = (passwordPrompt ?: PasswordPrompt(uri)).copy(
+                            message = if (password.isNullOrEmpty()) null else result.reason,
+                        )
+                        passwordInput = ""
+                        viewModel.processAction(ImportAction.ParsingFinished)
+                    } else {
+                        passwordPrompt = null
                         viewModel.processAction(ImportAction.ParseFailed(result.reason))
                     }
                 }
             }
         }
+    }
+
+    val pdfPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            passwordPrompt = null
+            extractAndParse(uri, password = null)
+        }
+    }
+
+    if (passwordPrompt != null) {
+        ImportPasswordDialog(
+            message = passwordPrompt?.message,
+            password = passwordInput,
+            isUnlocking = isUnlocking,
+            onPasswordChange = { passwordInput = it },
+            onUnlock = {
+                if (!isUnlocking) {
+                    isUnlocking = true
+                    extractAndParse(passwordPrompt?.uri ?: return@ImportPasswordDialog, passwordInput)
+                }
+            },
+            onDismiss = {
+                passwordPrompt = null
+                passwordInput = ""
+                isUnlocking = false
+                viewModel.processAction(ImportAction.ParsingFinished)
+            },
+        )
     }
 
     val reviewedProgressText = stringResource(
@@ -407,4 +460,74 @@ private fun ParsingIndicator(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/** The encrypted document waiting for a password, plus any failed attempt. */
+private data class PasswordPrompt(val uri: Uri, val message: String? = null)
+
+@Composable
+private fun ImportPasswordDialog(
+    message: String?,
+    password: String,
+    isUnlocking: Boolean,
+    onPasswordChange: (String) -> Unit,
+    onUnlock: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.import_pdf_password_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (message != null) {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = onPasswordChange,
+                    enabled = !isUnlocking,
+                    singleLine = true,
+                    label = { Text(text = stringResource(R.string.import_pdf_password_label)) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                )
+                Surface(
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    shape = MaterialTheme.shapes.medium,
+                ) {
+                    Text(
+                        text = stringResource(R.string.import_pdf_password_hint),
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                if (isUnlocking) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onUnlock,
+                enabled = password.isNotEmpty() && !isUnlocking,
+            ) {
+                Text(text = stringResource(R.string.import_pdf_password_unlock))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isUnlocking) {
+                Text(text = stringResource(R.string.cancel))
+            }
+        },
+    )
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import java.io.File
 import java.io.IOException
@@ -12,7 +13,11 @@ import java.io.Writer
 sealed interface PdfExtractResult {
     data class Text(val text: String) : PdfExtractResult
 
-    data class Failure(val reason: String) : PdfExtractResult
+    /**
+     * [needsPassword] marks a PDF that is encrypted, or a wrong password, so the
+     * caller can ask for the password and retry instead of showing a dead end.
+     */
+    data class Failure(val reason: String, val needsPassword: Boolean = false) : PdfExtractResult
 }
 
 object StatementPdfTextExtractor {
@@ -20,6 +25,9 @@ object StatementPdfTextExtractor {
     const val MAX_PDF_BYTES = 15 * 1024 * 1024L
     const val MAX_PDF_PAGES = 50
     const val MAX_TEXT_CHARS = 5_000_000
+
+    const val PASSWORD_REQUIRED = "This PDF is password protected."
+    const val PASSWORD_INCORRECT = "Incorrect password. Please try again."
 
     @Volatile
     private var initialized = false
@@ -35,7 +43,12 @@ object StatementPdfTextExtractor {
         }
     }
 
-    fun extractText(context: Context, uri: Uri): PdfExtractResult {
+    /**
+     * @param password the PDF's user password, or null to try opening it
+     *   without one. Bank statements are commonly encrypted, so a retry with the
+     *   password the user typed is expected to reuse the same content uri.
+     */
+    fun extractText(context: Context, uri: Uri, password: String? = null): PdfExtractResult {
         ensureInitialized(context)
         val tempFile = File.createTempFile("statement_import_", ".pdf", context.cacheDir)
         try {
@@ -59,7 +72,7 @@ object StatementPdfTextExtractor {
             if (bytesCopied == 0L) {
                 return PdfExtractResult.Failure("The selected file is empty.")
             }
-            return extractTextFromFile(tempFile)
+            return extractTextFromFile(tempFile, password)
         } catch (_: Exception) {
             return PdfExtractResult.Failure("Could not read this PDF. Please try another file.")
         } finally {
@@ -67,10 +80,17 @@ object StatementPdfTextExtractor {
         }
     }
 
-    internal fun extractTextFromFile(file: File): PdfExtractResult {
+    internal fun extractTextFromFile(file: File, password: String? = null): PdfExtractResult {
         var document: PDDocument? = null
+        val attemptedPassword = !password.isNullOrEmpty()
         return try {
-            document = PDDocument.load(file)
+            document = if (attemptedPassword) {
+                // PDFBox keeps the security handler attached after decrypting,
+                // so success is signalled by returning, not by isEncrypted.
+                PDDocument.load(file, password)
+            } else {
+                PDDocument.load(file)
+            }
             if (document.numberOfPages > MAX_PDF_PAGES) {
                 return PdfExtractResult.Failure(
                     "PDF has more than $MAX_PDF_PAGES pages. Please use a shorter date range.",
@@ -89,6 +109,11 @@ object StatementPdfTextExtractor {
             } else {
                 PdfExtractResult.Text(text)
             }
+        } catch (_: InvalidPasswordException) {
+            PdfExtractResult.Failure(
+                reason = if (attemptedPassword) PASSWORD_INCORRECT else PASSWORD_REQUIRED,
+                needsPassword = true,
+            )
         } catch (e: TextTooLargeException) {
             PdfExtractResult.Failure(
                 "Extracted text is too large. Please use a shorter date range.",
