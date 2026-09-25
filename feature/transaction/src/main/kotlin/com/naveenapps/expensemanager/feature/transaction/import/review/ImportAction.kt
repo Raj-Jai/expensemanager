@@ -10,6 +10,9 @@ sealed class ImportAction {
     data object StartParsing : ImportAction()
     data class ParsedTextReceived(val text: String) : ImportAction()
     data class ParseFailed(val message: String) : ImportAction()
+
+    /** Extraction is waiting on the user (a PDF password), so stop the spinner. */
+    data object ParsingFinished : ImportAction()
     data object SwitchToCard : ImportAction()
     data class OpenCard(val draftId: String) : ImportAction()
     data object SwitchToList : ImportAction()
