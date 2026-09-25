@@ -63,6 +63,12 @@ data class ImportState(
     val saveTotal: Int = 0,
     val topExpenseCategories: List<Category> = emptyList(),
     val topIncomeCategories: List<Category> = emptyList(),
+    /** Password remembered from an earlier import, null when none is stored. */
+    val rememberedPassword: String? = null,
+    /** "Remember password" checkbox in the password dialog. */
+    val rememberPassword: Boolean = false,
+    /** Set once [rememberedPassword] has been read, so the dialog can prefill. */
+    val isRememberedPasswordLoaded: Boolean = false,
 ) {
     val totalCount: Int get() = drafts.size
     val readyCount: Int get() = drafts.count { it.isImportable }

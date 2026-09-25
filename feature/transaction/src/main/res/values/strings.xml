@@ -117,5 +117,7 @@
     <string name="import_pdf_password_title">Password required</string>
     <string name="import_pdf_password_label">PDF password</string>
     <string name="import_pdf_password_unlock">Unlock</string>
+    <string name="import_pdf_password_remember">Remember password</string>
+    <string name="import_pdf_password_remember_note">Encrypted on this device only, and left out of backups.</string>
     <string name="import_pdf_password_hint">YONO statements use the last 5 digits of your registered mobile number, followed by your date of birth as ddmmyy — 11 digits, with no spaces or symbols.\n\nMobile 90000 12345, date of birth 01/01/1990 → mock-statement-password\nMobile 90000 67890, date of birth 25/12/1985 → 67890251285</string>
 </resources>

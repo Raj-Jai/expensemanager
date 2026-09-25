@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -108,6 +109,7 @@ fun ImportTransactionsScreen(
                         )
                         passwordInput = ""
                         viewModel.processAction(ImportAction.ParsingFinished)
+                        viewModel.processAction(ImportAction.LoadRememberedPassword)
                     } else {
                         passwordPrompt = null
                         viewModel.processAction(ImportAction.ParseFailed(result.reason))
@@ -126,15 +128,23 @@ fun ImportTransactionsScreen(
         }
     }
 
-    if (passwordPrompt != null) {
+    if (passwordPrompt != null && state.isRememberedPasswordLoaded) {
+        // Seed the field once, when the remembered password has arrived, so an
+        // in-progress edit is never overwritten.
+        LaunchedEffect(passwordPrompt?.uri, state.isRememberedPasswordLoaded) {
+            passwordInput = state.rememberedPassword.orEmpty()
+        }
         ImportPasswordDialog(
             message = passwordPrompt?.message,
             password = passwordInput,
+            rememberPassword = state.rememberPassword,
             isUnlocking = isUnlocking,
             onPasswordChange = { passwordInput = it },
+            onRememberPasswordChange = { viewModel.processAction(ImportAction.UpdateRememberPassword(it)) },
             onUnlock = {
                 if (!isUnlocking) {
                     isUnlocking = true
+                    viewModel.processAction(ImportAction.SubmitPassword(passwordInput))
                     extractAndParse(passwordPrompt?.uri ?: return@ImportPasswordDialog, passwordInput)
                 }
             },
@@ -469,8 +479,10 @@ private data class PasswordPrompt(val uri: Uri, val message: String? = null)
 private fun ImportPasswordDialog(
     message: String?,
     password: String,
+    rememberPassword: Boolean,
     isUnlocking: Boolean,
     onPasswordChange: (String) -> Unit,
+    onRememberPasswordChange: (Boolean) -> Unit,
     onUnlock: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -495,6 +507,27 @@ private fun ImportPasswordDialog(
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = rememberPassword,
+                        onCheckedChange = onRememberPasswordChange,
+                        enabled = !isUnlocking,
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.import_pdf_password_remember),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = stringResource(R.string.import_pdf_password_remember_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,

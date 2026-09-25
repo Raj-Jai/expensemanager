@@ -1,6 +1,7 @@
 package com.naveenapps.expensemanager.feature.transaction.import.review
 
 import com.google.common.truth.Truth.assertThat
+import com.naveenapps.expensemanager.core.datastore.StatementPasswordStore
 import com.naveenapps.expensemanager.core.domain.usecase.account.GetAllAccountsUseCase
 import com.naveenapps.expensemanager.core.domain.usecase.category.GetAllCategoryUseCase
 import com.naveenapps.expensemanager.core.domain.usecase.settings.currency.GetCurrencyUseCase
@@ -17,8 +18,12 @@ import com.naveenapps.expensemanager.core.testing.BaseCoroutineTest
 import com.naveenapps.expensemanager.core.testing.FAKE_EXPENSE_TRANSACTION
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verifyBlocking
 import org.mockito.kotlin.whenever
 import java.util.Date
 
@@ -33,6 +38,7 @@ class ImportViewModelTest : BaseCoroutineTest() {
     private val transactionRepository: TransactionRepository = mock()
     private val numberFormatRepository: NumberFormatRepository = mock()
     private val appComposeNavigator: AppComposeNavigator = mock()
+    private val statementPasswordStore: StatementPasswordStore = mock()
 
     private fun createViewModel(): ImportViewModel {
         whenever(getCurrencyUseCase.invoke()).thenReturn(flowOf(Currency(symbol = "₹", name = "INR")))
@@ -50,6 +56,7 @@ class ImportViewModelTest : BaseCoroutineTest() {
             transactionRepository = transactionRepository,
             numberFormatRepository = numberFormatRepository,
             appComposeNavigator = appComposeNavigator,
+            statementPasswordStore = statementPasswordStore,
         )
     }
 
@@ -314,5 +321,71 @@ class ImportViewModelTest : BaseCoroutineTest() {
 
         assertThat(top).hasSize(5)
         assertThat(top.map { it.id }).containsExactly("e1", "e2", "e3", "e4", "e5").inOrder()
+    }
+
+    @Test
+    fun `remembered password is loaded and prechecked`() = runTest(testCoroutineDispatcher.dispatcher) {
+        whenever { statementPasswordStore.read() }.thenReturn("mock-statement-password")
+        val vm = createViewModel()
+
+        vm.processAction(ImportAction.LoadRememberedPassword)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.rememberedPassword).isEqualTo("mock-statement-password")
+        assertThat(vm.state.value.rememberPassword).isTrue()
+        assertThat(vm.state.value.isRememberedPasswordLoaded).isTrue()
+    }
+
+    @Test
+    fun `no stored password leaves the checkbox clear`() = runTest(testCoroutineDispatcher.dispatcher) {
+        whenever { statementPasswordStore.read() }.thenReturn(null)
+        val vm = createViewModel()
+
+        vm.processAction(ImportAction.LoadRememberedPassword)
+        advanceUntilIdle()
+
+        assertThat(vm.state.value.rememberedPassword).isNull()
+        assertThat(vm.state.value.rememberPassword).isFalse()
+        assertThat(vm.state.value.isRememberedPasswordLoaded).isTrue()
+    }
+
+    @Test
+    fun `checked box stores the submitted password`() = runTest(testCoroutineDispatcher.dispatcher) {
+        whenever { statementPasswordStore.write(anyOrNull()) }.thenReturn(Unit)
+        val vm = createViewModel()
+
+        vm.processAction(ImportAction.UpdateRememberPassword(true))
+        vm.processAction(ImportAction.SubmitPassword("mock-statement-password"))
+        advanceUntilIdle()
+
+        verifyBlocking(statementPasswordStore) { write("mock-statement-password") }
+    }
+
+    @Test
+    fun `cleared box removes any stored password`() = runTest(testCoroutineDispatcher.dispatcher) {
+        whenever { statementPasswordStore.write(anyOrNull()) }.thenReturn(Unit)
+        val vm = createViewModel()
+
+        vm.processAction(ImportAction.LoadRememberedPassword)
+        vm.processAction(ImportAction.UpdateRememberPassword(false))
+        vm.processAction(ImportAction.SubmitPassword("mock-statement-password"))
+        advanceUntilIdle()
+
+        verifyBlocking(statementPasswordStore) { write(null) }
+    }
+
+    @Test
+    fun `starting a new parse forgets the prefill until it is read again`() = runTest(testCoroutineDispatcher.dispatcher) {
+        whenever { statementPasswordStore.read() }.thenReturn("mock-statement-password")
+        val vm = createViewModel()
+
+        vm.processAction(ImportAction.LoadRememberedPassword)
+        advanceUntilIdle()
+        assertThat(vm.state.value.rememberedPassword).isEqualTo("mock-statement-password")
+
+        vm.processAction(ImportAction.StartParsing)
+
+        assertThat(vm.state.value.rememberedPassword).isNull()
+        assertThat(vm.state.value.isRememberedPasswordLoaded).isFalse()
     }
 }
