@@ -2,6 +2,7 @@ package com.naveenapps.expensemanager.feature.transaction.import.review
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.naveenapps.expensemanager.core.datastore.StatementPasswordStore
 import com.naveenapps.expensemanager.core.domain.usecase.account.GetAllAccountsUseCase
 import com.naveenapps.expensemanager.core.domain.usecase.category.GetAllCategoryUseCase
 import com.naveenapps.expensemanager.core.domain.usecase.settings.currency.GetCurrencyUseCase
@@ -43,6 +44,7 @@ class ImportViewModel(
     private val transactionRepository: TransactionRepository,
     private val numberFormatRepository: NumberFormatRepository,
     private val appComposeNavigator: AppComposeNavigator,
+    private val statementPasswordStore: StatementPasswordStore,
     private val parserResolver: StatementParserResolver = StatementParserResolver(),
 ) : ViewModel() {
 
@@ -103,13 +105,39 @@ class ImportViewModel(
         when (action) {
             ImportAction.ClosePage -> appComposeNavigator.popBackStack()
             ImportAction.StartParsing -> _state.update {
-                it.copy(isLoading = true, errorMessage = null)
+                // A new document is being read, so any remembered password has
+                // to be re-read before the dialog may prefill it.
+                it.copy(
+                    isLoading = true,
+                    errorMessage = null,
+                    rememberedPassword = null,
+                    rememberPassword = false,
+                    isRememberedPasswordLoaded = false,
+                )
             }
             is ImportAction.ParsedTextReceived -> onParsedText(action.text)
             is ImportAction.ParseFailed -> _state.update {
                 it.copy(isLoading = false, errorMessage = action.message)
             }
 
+            ImportAction.LoadRememberedPassword -> viewModelScope.launch {
+                val remembered = statementPasswordStore.read()
+                _state.update {
+                    it.copy(
+                        rememberedPassword = remembered,
+                        rememberPassword = remembered != null,
+                        isRememberedPasswordLoaded = true,
+                    )
+                }
+            }
+            is ImportAction.UpdateRememberPassword -> _state.update {
+                it.copy(rememberPassword = action.remember)
+            }
+            is ImportAction.SubmitPassword -> viewModelScope.launch {
+                statementPasswordStore.write(
+                    if (_state.value.rememberPassword) action.password else null,
+                )
+            }
             ImportAction.SwitchToCard -> _state.update { it.copy(viewMode = ImportViewMode.CARD) }
             is ImportAction.OpenCard -> {
                 val index = _state.value.drafts.indexOfFirst { it.parsed.id == action.draftId }

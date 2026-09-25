@@ -13,6 +13,13 @@ sealed class ImportAction {
 
     /** Extraction is waiting on the user (a PDF password), so stop the spinner. */
     data object ParsingFinished : ImportAction()
+
+    /** Read the remembered password so the password dialog can prefill it. */
+    data object LoadRememberedPassword : ImportAction()
+    data class UpdateRememberPassword(val remember: Boolean) : ImportAction()
+
+    /** Unlock was tapped: persist the password only if the box is checked. */
+    data class SubmitPassword(val password: String) : ImportAction()
     data object SwitchToCard : ImportAction()
     data class OpenCard(val draftId: String) : ImportAction()
     data object SwitchToList : ImportAction()

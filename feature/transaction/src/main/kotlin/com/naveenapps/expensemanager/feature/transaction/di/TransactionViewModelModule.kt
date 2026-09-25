@@ -47,6 +47,7 @@ val TransactionViewModelModule = module {
             transactionRepository = get(),
             numberFormatRepository = get(),
             appComposeNavigator = get(),
+            statementPasswordStore = get(),
         )
     }
 }
