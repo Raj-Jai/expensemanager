@@ -40,6 +40,10 @@
 |:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|
 | <img src="docs/images/image5.png" width="250px"/> | <img src="docs/images/image6.png" width="250px"/> | <img src="docs/images/image7.png" width="250px"/> | <img src="docs/images/image8.png" width="250px"/> |
 
+|                Statement Import                  |                   Import Review                   |                Import Review List                |              Password-Protected PDF               |
+|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------:|
+| <img src="docs/images/image13.png" width="250px"/> | <img src="docs/images/image14.png" width="250px"/> | <img src="docs/images/image15.png" width="250px"/> | <img src="docs/images/image16.png" width="250px"/> |
+
 ---
 
 ## Features
