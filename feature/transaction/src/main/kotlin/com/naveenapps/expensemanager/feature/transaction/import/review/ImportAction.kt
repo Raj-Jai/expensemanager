@@ -25,6 +25,7 @@ sealed class ImportAction {
     data object SelectAll : ImportAction()
     data object DeselectAll : ImportAction()
     data object ConfirmSelected : ImportAction()
+    data object ClearLastAction : ImportAction()
     data class ShowAccountSelection(val draftId: String) : ImportAction()
     data class ShowCategorySelection(val draftId: String) : ImportAction()
     data class ShowDateSelection(val draftId: String) : ImportAction()

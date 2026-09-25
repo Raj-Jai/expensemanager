@@ -1,10 +1,13 @@
 package com.naveenapps.expensemanager.feature.transaction.import.review
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,13 +44,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -69,6 +73,7 @@ import com.naveenapps.expensemanager.feature.category.selection.CategorySelectio
 import com.naveenapps.expensemanager.feature.transaction.R
 import java.util.Calendar
 import java.util.Date
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -79,6 +84,7 @@ fun ImportCardStack(
     modifier: Modifier = Modifier,
 ) {
     val draft = state.currentDraft
+    val isCompact = LocalConfiguration.current.screenWidthDp <= 480
     if (draft == null) {
         Column(
             modifier = modifier.fillMaxSize(),
@@ -106,7 +112,7 @@ fun ImportCardStack(
 
     Column(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp),
     ) {
         if (state.pendingDrafts.size > 1) {
             Box(
@@ -125,7 +131,8 @@ fun ImportCardStack(
             Text(
                 text = stringResource(R.string.import_swipe_hint),
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
@@ -144,24 +151,50 @@ fun ImportCardStack(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedButton(
-                onClick = { onAction(ImportAction.RejectCurrent) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error,
-                ),
-            ) {
-                Icon(imageVector = Icons.Default.Close, contentDescription = null)
-                Spacer(modifier = Modifier.padding(4.dp))
-                Text(text = stringResource(R.string.reject))
+            if (draft.parsed.isSuccess) {
+                OutlinedButton(
+                    onClick = { onAction(ImportAction.RejectCurrent) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = null)
+                    Spacer(modifier = Modifier.padding(4.dp))
+                    Text(text = stringResource(R.string.reject))
+                }
+                Button(
+                    onClick = { onAction(ImportAction.AcceptCurrent) },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(imageVector = Icons.Default.Check, contentDescription = null)
+                    Spacer(modifier = Modifier.padding(4.dp))
+                    Text(text = stringResource(R.string.add))
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { onAction(ImportAction.RejectCurrent) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = null)
+                    Spacer(modifier = Modifier.padding(4.dp))
+                    Text(text = stringResource(R.string.import_skip_transaction))
+                }
             }
-            Button(
-                onClick = { onAction(ImportAction.AcceptCurrent) },
-                modifier = Modifier.weight(1f),
-            ) {
-                Icon(imageVector = Icons.Default.Check, contentDescription = null)
-                Spacer(modifier = Modifier.padding(4.dp))
-                Text(text = stringResource(R.string.add))
+
+            if (isCompact) {
+                TextButton(
+                    onClick = { onAction(ImportAction.SwitchToList) },
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.import_review_list),
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -174,17 +207,20 @@ private fun SwipeableImportCard(
     onAction: (ImportAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val canAccept = draft.parsed.isSuccess
     val addAccessibilityLabel = stringResource(R.string.add)
-    val skipAccessibilityLabel = stringResource(R.string.reject)
+    val skipAccessibilityLabel = stringResource(R.string.import_skip_transaction)
     val density = LocalDensity.current
-    val swipeThreshold = with(density) { 120.dp.toPx() }
-    var rawOffset by remember(draft.parsed.id, state.currentIndex) { mutableFloatStateOf(0f) }
-    val animatedOffset by animateFloatAsState(
-        targetValue = rawOffset,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "import_swipe",
-    )
-    val swipeFraction = (animatedOffset / swipeThreshold).coerceIn(-1f, 1f)
+    val maxOffset = with(density) { 180.dp.toPx() }
+    val swipeThreshold = with(density) { 128.dp.toPx() }
+    val velocityThreshold = with(density) { 1400.dp.toPx() }
+    val minimumVelocityDistance = with(density) { 32.dp.toPx() }
+    val offsetX = remember(draft.parsed.id, state.currentIndex) { Animatable(0f) }
+    var dragOffset by remember(draft.parsed.id, state.currentIndex) { mutableFloatStateOf(0f) }
+    var isDragging by remember(draft.parsed.id, state.currentIndex) { mutableStateOf(false) }
+    val dragScope = rememberCoroutineScope()
+    val renderedOffset = if (isDragging) dragOffset else offsetX.value
+    val swipeFraction = (renderedOffset / swipeThreshold).coerceIn(-1f, 1f)
     val swipeBackgroundColor = when {
         swipeFraction > 0.1f -> MaterialTheme.colorScheme.primary
         swipeFraction < -0.1f -> MaterialTheme.colorScheme.error
@@ -201,10 +237,14 @@ private fun SwipeableImportCard(
             .fillMaxWidth()
             .fillMaxHeight()
             .semantics {
-                customActions = listOf(
-                    CustomAccessibilityAction(addAccessibilityLabel) {
-                        onAction(ImportAction.AcceptCurrent)
-                        true
+                customActions = listOfNotNull(
+                    if (canAccept) {
+                        CustomAccessibilityAction(addAccessibilityLabel) {
+                            onAction(ImportAction.AcceptCurrent)
+                            true
+                        }
+                    } else {
+                        null
                     },
                     CustomAccessibilityAction(skipAccessibilityLabel) {
                         onAction(ImportAction.RejectCurrent)
@@ -224,10 +264,10 @@ private fun SwipeableImportCard(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = if (swipeFraction > 0) {
+                text = if (swipeFraction > 0 && canAccept) {
                     stringResource(R.string.add)
-                } else if (swipeFraction < 0) {
-                    stringResource(R.string.reject)
+                } else if (swipeFraction != 0f && (swipeFraction < 0 || !canAccept)) {
+                    stringResource(R.string.import_skip_transaction)
                 } else {
                     ""
                 },
@@ -240,29 +280,53 @@ private fun SwipeableImportCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .offset { IntOffset(animatedOffset.roundToInt(), 0) }
-                .pointerInput(draft.parsed.id, state.currentIndex) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            when {
-                                rawOffset > swipeThreshold -> {
-                                    rawOffset = 0f
-                                    onAction(ImportAction.AcceptCurrent)
-                                }
-
-                                rawOffset < -swipeThreshold -> {
-                                    rawOffset = 0f
-                                    onAction(ImportAction.RejectCurrent)
-                                }
-
-                                else -> rawOffset = 0f
+                .offset { IntOffset(renderedOffset.roundToInt(), 0) }
+                .draggable(
+                    orientation = Orientation.Horizontal,
+                    state = rememberDraggableState { delta ->
+                        dragOffset = (dragOffset + delta).coerceIn(-maxOffset, maxOffset)
+                    },
+                    onDragStarted = {
+                        dragOffset = 0f
+                        isDragging = true
+                        dragScope.launch { offsetX.stop() }
+                    },
+                    onDragStopped = { velocity ->
+                        isDragging = false
+                        offsetX.snapTo(dragOffset)
+                        val direction = when {
+                            abs(velocity) >= velocityThreshold &&
+                                abs(dragOffset) >= minimumVelocityDistance -> {
+                                if (velocity > 0f) 1f else -1f
                             }
-                        },
-                        onHorizontalDrag = { _, delta ->
-                            rawOffset = (rawOffset + delta).coerceIn(-swipeThreshold * 2, swipeThreshold * 2)
-                        },
-                    )
-                },
+                            dragOffset > swipeThreshold -> 1f
+                            dragOffset < -swipeThreshold -> -1f
+                            else -> 0f
+                        }
+                        val target = if (direction > 0f) maxOffset else -maxOffset
+                        if (direction == 0f) {
+                            offsetX.animateTo(
+                                targetValue = 0f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            )
+                            dragOffset = 0f
+                        } else {
+                            offsetX.animateTo(
+                                targetValue = target,
+                                animationSpec = tween(durationMillis = 180),
+                                initialVelocity = velocity,
+                            )
+                            dragOffset = target
+                            onAction(
+                                if (direction > 0f && canAccept) {
+                                    ImportAction.AcceptCurrent
+                                } else {
+                                    ImportAction.RejectCurrent
+                                },
+                            )
+                        }
+                    },
+                ),
         ) {
             EditableImportCardContent(
                 draft = draft,
@@ -280,7 +344,7 @@ private fun EditableImportCardContent(
     onAction: (ImportAction) -> Unit,
 ) {
     val scroll = rememberScrollState()
-    var showTransactionDetails by rememberSaveable(draft.parsed.id) { mutableStateOf(false) }
+    var showTransactionDetails by rememberSaveable(draft.parsed.id) { mutableStateOf(true) }
 
     if (draft.showDateSelection) {
         AppDatePickerDialog(
@@ -340,22 +404,45 @@ private fun EditableImportCardContent(
         }
     }
 
+    val isCompact = LocalConfiguration.current.screenWidthDp <= 480
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(if (isCompact) 12.dp else 16.dp)
             .verticalScroll(scroll),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 10.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(
-                text = draft.parsed.counterpartyName,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = draft.parsed.counterpartyName,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                )
+                if (draft.isDuplicate) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.import_possible_duplicate),
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        maxLines = 1,
+                    )
+                }
+            }
             Text(
                 text = stringResource(
                     R.string.import_transaction_identity_format,
@@ -366,30 +453,6 @@ private fun EditableImportCardContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-
-        if (draft.isDuplicate) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        text = stringResource(R.string.import_possible_duplicate),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                    Text(
-                        text = stringResource(R.string.import_duplicate_detail),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
-            }
-        }
         val parseError: String? = draft.parsed.parseError
         if (parseError != null && !draft.dateManuallyCorrected) {
             Text(
@@ -399,19 +462,48 @@ private fun EditableImportCardContent(
             )
         }
         if (!draft.parsed.isSuccess) {
-            Text(
-                text = stringResource(R.string.import_bank_status_review, draft.parsed.status),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.import_bank_failed_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    Text(
+                        text = stringResource(R.string.import_bank_failed_detail),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                }
+            }
         }
+
+        Text(
+            text = stringResource(R.string.import_transaction_section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         OutlinedTextField(
             value = draft.amountText,
             onValueChange = { onAction(ImportAction.UpdateAmount(draft.parsed.id, it)) },
             label = { Text(stringResource(R.string.amount)) },
             modifier = Modifier.fillMaxWidth(),
+            enabled = draft.parsed.isSuccess,
             singleLine = true,
+        )
+
+        Text(
+            text = stringResource(R.string.import_classification_section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         Row(
@@ -419,15 +511,30 @@ private fun EditableImportCardContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             FilterChip(
+                modifier = Modifier.weight(1f),
                 selected = draft.transactionType == TransactionType.EXPENSE,
                 onClick = { onAction(ImportAction.UpdateType(draft.parsed.id, TransactionType.EXPENSE)) },
+                enabled = draft.parsed.isSuccess,
                 label = { Text(stringResource(R.string.expense)) },
             )
             FilterChip(
+                modifier = Modifier.weight(1f),
                 selected = draft.transactionType == TransactionType.INCOME,
                 onClick = { onAction(ImportAction.UpdateType(draft.parsed.id, TransactionType.INCOME)) },
+                enabled = draft.parsed.isSuccess,
                 label = { Text(stringResource(R.string.income)) },
             )
+            OutlinedButton(
+                modifier = Modifier.weight(1.2f),
+                onClick = { onAction(ImportAction.ShowAccountSelection(draft.parsed.id)) },
+                enabled = draft.parsed.isSuccess,
+                contentPadding = PaddingValues(horizontal = 8.dp),
+            ) {
+                Text(
+                    text = draft.selectedAccount?.name ?: stringResource(R.string.select_account),
+                    maxLines = 1,
+                )
+            }
         }
 
         Row(
@@ -435,32 +542,53 @@ private fun EditableImportCardContent(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ClickableTextField(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .alpha(if (draft.parsed.isSuccess) 1f else 0.6f),
                 value = draft.dateTime.toCompleteDateWithDate(),
                 label = R.string.select_date,
                 leadingIcon = null,
-                onClick = { onAction(ImportAction.ShowDateSelection(draft.parsed.id)) },
+                onClick = {
+                    if (draft.parsed.isSuccess) {
+                        onAction(ImportAction.ShowDateSelection(draft.parsed.id))
+                    }
+                },
             )
             ClickableTextField(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .alpha(if (draft.parsed.isSuccess) 1f else 0.6f),
                 value = draft.dateTime.toTimeAndMinutes(),
                 label = R.string.select_time,
                 leadingIcon = null,
-                onClick = { onAction(ImportAction.ShowTimeSelection(draft.parsed.id)) },
+                onClick = {
+                    if (draft.parsed.isSuccess) {
+                        onAction(ImportAction.ShowTimeSelection(draft.parsed.id))
+                    }
+                },
             )
-        }
-
-        OutlinedButton(
-            onClick = { onAction(ImportAction.ShowAccountSelection(draft.parsed.id)) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(text = draft.selectedAccount?.name ?: stringResource(R.string.select_account))
         }
 
         QuickCategoryPicker(
             draft = draft,
             state = state,
             onAction = onAction,
+            enabled = draft.parsed.isSuccess,
+        )
+
+        Text(
+            text = stringResource(R.string.import_notes_section),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        OutlinedTextField(
+            value = draft.notes,
+            onValueChange = { onAction(ImportAction.UpdateNotes(draft.parsed.id, it)) },
+            label = { Text(stringResource(R.string.notes)) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = draft.parsed.isSuccess,
+            maxLines = if (isCompact) 2 else 3,
         )
 
         TextButton(
@@ -490,14 +618,6 @@ private fun EditableImportCardContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-
-        OutlinedTextField(
-            value = draft.notes,
-            onValueChange = { onAction(ImportAction.UpdateNotes(draft.parsed.id, it)) },
-            label = { Text(stringResource(R.string.notes)) },
-            modifier = Modifier.fillMaxWidth(),
-            maxLines = 3,
-        )
     }
 }
 
@@ -506,6 +626,7 @@ private fun QuickCategoryPicker(
     draft: ImportDraft,
     state: ImportState,
     onAction: (ImportAction) -> Unit,
+    enabled: Boolean,
 ) {
     val quickList = if (draft.transactionType == TransactionType.INCOME) {
         state.topIncomeCategories
@@ -531,6 +652,7 @@ private fun QuickCategoryPicker(
                     FilterChip(
                         selected = true,
                         onClick = {},
+                        enabled = enabled,
                         label = {
                             Text(
                                 selected.titleResId?.let { stringResource(it) }
@@ -550,6 +672,7 @@ private fun QuickCategoryPicker(
                     onClick = {
                         onAction(ImportAction.SelectCategory(draft.parsed.id, category))
                     },
+                    enabled = enabled,
                     label = {
                         Text(
                             category.titleResId?.let { stringResource(it) }
@@ -561,6 +684,7 @@ private fun QuickCategoryPicker(
             item(key = "more") {
                 androidx.compose.material3.AssistChip(
                     onClick = { onAction(ImportAction.ShowCategorySelection(draft.parsed.id)) },
+                    enabled = enabled,
                     label = { Text(stringResource(R.string.more_categories)) },
                     trailingIcon = {
                         Icon(

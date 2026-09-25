@@ -25,9 +25,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -61,6 +64,7 @@ fun ImportTransactionsScreen(
     viewModel: ImportViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val isCompact = LocalConfiguration.current.screenWidthDp <= 480
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -100,17 +104,17 @@ fun ImportTransactionsScreen(
     }
 
     LaunchedEffect(state.lastAction, state.currentIndex) {
-        lastActionMessage?.let { message ->
-            scope.launch {
-                val result = snackbarHostState.showSnackbar(
-                    message = "$message $reviewedProgressText",
-                    actionLabel = if (state.canUndo) undoLabel else null,
-                    withDismissAction = true,
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    viewModel.processAction(ImportAction.UndoLast)
-                }
-            }
+        val message = lastActionMessage ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = "$message $reviewedProgressText",
+            actionLabel = if (state.canUndo) undoLabel else null,
+            duration = SnackbarDuration.Short,
+            withDismissAction = false,
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            viewModel.processAction(ImportAction.UndoLast)
+        } else {
+            viewModel.processAction(ImportAction.ClearLastAction)
         }
     }
 
@@ -124,12 +128,29 @@ fun ImportTransactionsScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(
+                snackbarHostState,
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(8.dp),
+            )
+        },
         topBar = {
             ExpenseManagerTopAppBar(
                 navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
                 navigationBackClick = { viewModel.processAction(ImportAction.ClosePage) },
                 title = stringResource(R.string.import_pdf_title),
+                actions = {
+                    if (state.drafts.isNotEmpty()) {
+                        IconButton(onClick = { pdfPicker.launch("application/pdf") }) {
+                            Icon(
+                                imageVector = Icons.Outlined.Upload,
+                                contentDescription = stringResource(R.string.import_replace_pdf),
+                            )
+                        }
+                    }
+                },
             )
         },
         bottomBar = {
@@ -155,8 +176,8 @@ fun ImportTransactionsScreen(
                     .widthIn(max = 520.dp)
                     .fillMaxHeight()
                     .align(Alignment.TopCenter)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(if (isCompact) 12.dp else 16.dp),
+                verticalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp),
             ) {
                 if (state.drafts.isEmpty()) {
                     if (state.isLoading) {
@@ -201,44 +222,29 @@ fun ImportTransactionsScreen(
                         drawStopIndicator = {},
                     )
 
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        Text(
-                            text = stringResource(
-                                R.string.import_ready_summary,
+                    val summaryText = buildString {
+                        append(
+                            stringResource(
+                                R.string.import_summary_compact,
                                 state.readyCount,
                                 state.unavailableCount,
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.import_review_summary,
                                 state.acceptedCount,
                                 state.rejectedCount,
                             ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         if (state.duplicateCount > 0) {
-                            Text(
-                                text = stringResource(R.string.import_duplicate_summary, state.duplicateCount),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                            )
+                            append(" • ")
+                            append(stringResource(R.string.import_duplicate_summary, state.duplicateCount))
                         }
                     }
 
-                    TextButton(
-                        onClick = { pdfPicker.launch("application/pdf") },
-                        modifier = Modifier.align(Alignment.End),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                    ) {
-                        Text(text = stringResource(R.string.import_replace_pdf))
-                    }
+                    Text(
+                        text = summaryText,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                    )
 
                     if (!state.duplicateCheckAvailable) {
                         Text(

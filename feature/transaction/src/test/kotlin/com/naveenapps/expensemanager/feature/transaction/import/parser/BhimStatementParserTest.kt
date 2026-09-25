@@ -85,6 +85,19 @@ class BhimStatementParserTest {
     }
 
     @Test
+    fun `parses five bank-failed rows for review`() {
+        val lines = (1..5).joinToString("\n") { index ->
+            "04/09/2026   21:13:42   ICICI BANK CREDIT CARD    000000XXXXXX00              mockparty03@upi(MOCK PARTY 02)                      mockparty06@rapl(xxxxxxxxREST)                  mock-statement-password$index              PAY            1650.60          DR       FAILURE"
+        }
+
+        val result = parser.parse(lines)
+
+        assertThat(result).hasSize(5)
+        assertThat(result.map { it.status }).containsExactly("FAILURE", "FAILURE", "FAILURE", "FAILURE", "FAILURE")
+        assertThat(result.count { it.isSuccess }).isEqualTo(0)
+    }
+
+    @Test
     fun `parses indian grouped amount with commas`() {
         val line = "22/07/2026   16:22:47      State Bank Of India     XXXXXX0001                   mockparty03@upi(MOCK PARTY 02)                   mockparty02@utkarshbank(xxxxxxxxsits)     800000000606   PAY   100000.00   DR   SUCCESS"
         val result = parser.parse(line)
