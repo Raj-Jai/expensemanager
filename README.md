@@ -80,6 +80,17 @@ Each transaction row has been refined for better visual hierarchy and interactio
 - **Smooth content transitions** — `animateContentSize()` for expanding/collapsing notes
 - **Backward-compatible API** — all new callbacks (`onEdit`, `onDelete`, `onClick`) default to `null`, so existing call sites remain unchanged
 
+### Statement Import (PDF)
+- **On-device parsing** — statement PDFs are read with PdfBox-Android; nothing is uploaded and no network call is made
+- **Two statement formats** — BHIM/UPI transaction histories and SBI YONO account statements, detected automatically from the document text
+- **Two review modes** — a swipeable card stack for one-at-a-time review, or a list with multi-select and bulk import
+- **Editable before import** — amount, notes, date, type, account and category can be corrected on the card
+- **Possible-duplicate warnings** — matches on transaction type, amount and timestamp; date-only statements (YONO) widen the match to the whole day
+- **Unparseable rows are never silently dropped** — a malformed date or amount is flagged and must be corrected before that row can be imported
+- **Password-protected statements** — encrypted PDFs prompt for a password, which is decrypted on-device; optionally remembered with an AES-GCM key held in the Android Keystore
+- **Category shortcuts** — the three most-used categories for the transaction type, plus a full picker
+- **Bounded extraction** — PDF size, page count and extracted-text length are capped, so a malformed file cannot exhaust memory
+
 ### Theming
 - Full **Material 3** design system with dynamic color support
 - Complete **Dark Theme** implementation
