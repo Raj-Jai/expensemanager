@@ -110,6 +110,17 @@ class ImportViewModel(
             }
 
             ImportAction.SwitchToCard -> _state.update { it.copy(viewMode = ImportViewMode.CARD) }
+            is ImportAction.OpenCard -> {
+                val index = _state.value.drafts.indexOfFirst { it.parsed.id == action.draftId }
+                if (index >= 0) {
+                    _state.update {
+                        it.copy(
+                            currentIndex = index,
+                            viewMode = ImportViewMode.CARD,
+                        )
+                    }
+                }
+            }
             ImportAction.SwitchToList -> _state.update { it.copy(viewMode = ImportViewMode.LIST) }
             ImportAction.AcceptCurrent -> acceptCurrent()
             ImportAction.RejectCurrent -> rejectCurrent()

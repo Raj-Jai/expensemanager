@@ -18,8 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.naveenapps.expensemanager.core.common.utils.toCompleteDateWithDate
 import com.naveenapps.expensemanager.core.designsystem.ui.components.AppCardView
+import com.naveenapps.expensemanager.core.designsystem.ui.components.IconAndBackgroundView
 import com.naveenapps.expensemanager.feature.transaction.R
 
 @Composable
@@ -47,22 +51,18 @@ fun ImportListView(
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = 16.dp),
+            contentPadding = PaddingValues(bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(state.drafts, key = { it.parsed.id }) { draft ->
                 AppCardView(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = if (draft.isImportable) {
-                        { onAction(ImportAction.ToggleSelection(draft.parsed.id)) }
-                    } else {
-                        null
-                    },
+                    onClick = { onAction(ImportAction.OpenCard(draft.parsed.id)) },
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -75,17 +75,41 @@ fun ImportListView(
                             },
                             enabled = draft.isImportable,
                         )
-                        Column(modifier = Modifier.weight(1f)) {
+                        IconAndBackgroundView(
+                            icon = draft.selectedCategory?.storedIcon?.name ?: "category",
+                            iconBackgroundColor = draft.selectedCategory?.storedIcon?.backgroundColor ?: "#DCE8FF",
+                            name = draft.selectedCategory?.titleResId?.let { stringResource(it) }
+                                ?: draft.selectedCategory?.name
+                                ?: draft.parsed.counterpartyName,
+                            customImagePath = draft.selectedCategory?.storedIcon?.customImagePath,
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
                             Text(
-                                text = "${if (draft.transactionType.name == "INCOME") "+" else "−"}${draft.amountText} • ${draft.parsed.counterpartyName}",
+                                text = draft.parsed.counterpartyName,
                                 style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                text = draft.notes,
+                                text = draft.selectedAccount?.name ?: stringResource(R.string.select_account),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
+                            if (draft.notes.isNotBlank()) {
+                                Text(
+                                    text = draft.notes,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                             if (!draft.parsed.isSuccess) {
                                 ImportStatusLabel(
                                     text = stringResource(R.string.import_bank_failed_title),
@@ -120,6 +144,26 @@ fun ImportListView(
                                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 )
                             }
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                text = "${if (draft.transactionType.name == "INCOME") "+" else "−"}${draft.amountText}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (draft.transactionType.name == "INCOME") {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
+                            )
+                            Text(
+                                text = draft.dateTime.toCompleteDateWithDate(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                 }
