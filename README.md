@@ -22,6 +22,22 @@
 
 ---
 
+## Download this fork
+
+Unofficial build with [statement PDF import](#statement-import-pdf) added. Not published to the Play Store — if you want the maintained official app, use the badge above.
+
+| Build | What's in it |
+|---|---|
+| [fork-v1.4.13-1](https://github.com/Raj-Jai/expensemanager/releases/tag/fork-v1.4.13-1) | Import transactions from BHIM/UPI transaction histories and SBI YONO account statements, on-device, with review before saving |
+
+Install `expensemanager-1.4.13-fork1.apk` from the [releases page](https://github.com/Raj-Jai/expensemanager/releases). Android will ask you to allow installation from your browser or file manager.
+
+> **Upgrading from the Play Store version?** This build is signed with a different key, so Android will not let it replace the Play Store install. Export your data with the app's own backup first, uninstall the Play Store version, then install this one.
+
+Updates only ever come from this repository, so always take the newest asset. This fork is not the upstream project — please report app issues here and general issues upstream at [nkuppan/expensemanager](https://github.com/nkuppan/expensemanager).
+
+---
+
 ## About
 
 **Expense Manager** is a fully functional Android app for personal finance tracking. It follows modern Android design and development best practices, making it both a useful daily-driver and a reference project for developers looking to learn production-grade Compose architecture.
