@@ -135,6 +135,40 @@ class ImportViewModelTest : BaseCoroutineTest() {
         assertThat(vm.isDuplicate(parsedIncome, listOf(existingExpense))).isFalse()
     }
 
+    @Test
+    fun `date only row matches any existing transaction on the same day`() {
+        val vm = createViewModel()
+        val midnight = Date(1_700_000_000_000L)
+        val parsed = parsedWith(status = "SUCCESS").copy(
+            amount = 100.0,
+            dateTime = midnight,
+            isDateOnly = true,
+        )
+        val laterSameDay = FAKE_EXPENSE_TRANSACTION.copy(
+            amount = Amount(100.0),
+            createdOn = Date(midnight.time + 5 * 60 * 60 * 1000L),
+            notes = parsed.defaultNotes,
+        )
+        assertThat(vm.isDuplicate(parsed, listOf(laterSameDay))).isTrue()
+    }
+
+    @Test
+    fun `date only row does not match a different day`() {
+        val vm = createViewModel()
+        val midnight = Date(1_700_000_000_000L)
+        val parsed = parsedWith(status = "SUCCESS").copy(
+            amount = 100.0,
+            dateTime = midnight,
+            isDateOnly = true,
+        )
+        val nextDay = FAKE_EXPENSE_TRANSACTION.copy(
+            amount = Amount(100.0),
+            createdOn = Date(midnight.time + 24 * 60 * 60 * 1000L),
+            notes = parsed.defaultNotes,
+        )
+        assertThat(vm.isDuplicate(parsed, listOf(nextDay))).isFalse()
+    }
+
     private fun draftFor(parsed: ParsedTransaction) = ImportDraft(
         parsed = parsed,
         amountText = parsed.amount.toString(),

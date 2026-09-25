@@ -15,7 +15,7 @@ sealed interface PdfExtractResult {
     data class Failure(val reason: String) : PdfExtractResult
 }
 
-object BhimPdfTextExtractor {
+object StatementPdfTextExtractor {
 
     const val MAX_PDF_BYTES = 15 * 1024 * 1024L
     const val MAX_PDF_PAGES = 50
@@ -37,7 +37,7 @@ object BhimPdfTextExtractor {
 
     fun extractText(context: Context, uri: Uri): PdfExtractResult {
         ensureInitialized(context)
-        val tempFile = File.createTempFile("bhim_import_", ".pdf", context.cacheDir)
+        val tempFile = File.createTempFile("statement_import_", ".pdf", context.cacheDir)
         try {
             val bytesCopied = context.contentResolver.openInputStream(uri)?.use { input ->
                 var total = 0L

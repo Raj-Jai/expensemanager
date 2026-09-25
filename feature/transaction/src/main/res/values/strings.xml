@@ -60,8 +60,8 @@
     <string name="backspace">Backspace</string>
     <string name="add_transaction">Add Transaction</string>
     <string name="import_transactions">Import transactions</string>
-    <string name="import_pdf_title">Import from BHIM PDF</string>
-    <string name="import_pdf_subtitle">Upload your BHIM Transaction History PDF. Parsing happens on-device.</string>
+    <string name="import_pdf_title">Import from PDF</string>
+    <string name="import_pdf_subtitle">Upload a BHIM transaction history or SBI YONO account statement PDF. Parsing happens on-device.</string>
     <string name="pick_pdf">Pick PDF</string>
     <string name="parsing_pdf">Parsing PDF…</string>
     <string name="review_import">Review import</string>
@@ -75,7 +75,7 @@
     <string name="import_selected">Import selected</string>
     <string name="already_exists">Already exists (same amount+date+notes)</string>
     <string name="counterparty">Counterparty</string>
-    <string name="no_parsed_transactions">No parsed transactions yet. Pick a BHIM PDF to start.</string>
+    <string name="no_parsed_transactions">No parsed transactions yet. Pick a statement PDF to start.</string>
     <string name="parsing_statement">Parsing your statement…</string>
     <string name="parsing_on_device_note">On-device • may take a few seconds for large statements</string>
     <string name="top_categories">Top categories</string>
@@ -108,8 +108,8 @@
     <string name="import_notes_section">Notes</string>
     <string name="import_unavailable">Couldn\'t import</string>
     <string name="import_unavailable_detail">Bank status: %1$s</string>
-    <string name="import_empty_title">Import BHIM transactions</string>
-    <string name="import_empty_subtitle">Select your BHIM transaction-history PDF.</string>
+    <string name="import_empty_title">Import transactions</string>
+    <string name="import_empty_subtitle">Select a BHIM transaction history or SBI YONO account statement PDF.</string>
     <string name="import_privacy_note">Your PDF is processed entirely on this device.</string>
     <string name="import_added">Added</string>
     <string name="import_skipped">Skipped</string>

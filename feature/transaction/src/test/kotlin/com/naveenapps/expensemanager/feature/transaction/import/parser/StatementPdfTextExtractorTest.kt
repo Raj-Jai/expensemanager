@@ -4,11 +4,11 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
-class BhimPdfTextExtractorTest {
+class StatementPdfTextExtractorTest {
 
     @Test
     fun `bounded writer accepts text within limit`() {
-        val writer = BhimPdfTextExtractor.BoundedWriter(100)
+        val writer = StatementPdfTextExtractor.BoundedWriter(100)
         writer.write("hello world".toCharArray(), 0, 11)
 
         assertThat(writer.result()).isEqualTo("hello world")
@@ -16,10 +16,10 @@ class BhimPdfTextExtractorTest {
 
     @Test
     fun `bounded writer rejects text exceeding limit without full allocation`() {
-        val writer = BhimPdfTextExtractor.BoundedWriter(10)
+        val writer = StatementPdfTextExtractor.BoundedWriter(10)
         writer.write("12345".toCharArray(), 0, 5)
 
-        assertThrows(BhimPdfTextExtractor.TextTooLargeException::class.java) {
+        assertThrows(StatementPdfTextExtractor.TextTooLargeException::class.java) {
             writer.write("678901".toCharArray(), 0, 6)
         }
         assertThat(writer.result().length).isAtMost(10)
@@ -27,8 +27,8 @@ class BhimPdfTextExtractorTest {
 
     @Test
     fun `limits are positive and sane`() {
-        assertThat(BhimPdfTextExtractor.MAX_PDF_BYTES).isGreaterThan(0L)
-        assertThat(BhimPdfTextExtractor.MAX_PDF_PAGES).isGreaterThan(0)
-        assertThat(BhimPdfTextExtractor.MAX_TEXT_CHARS).isGreaterThan(0)
+        assertThat(StatementPdfTextExtractor.MAX_PDF_BYTES).isGreaterThan(0L)
+        assertThat(StatementPdfTextExtractor.MAX_PDF_PAGES).isGreaterThan(0)
+        assertThat(StatementPdfTextExtractor.MAX_TEXT_CHARS).isGreaterThan(0)
     }
 }

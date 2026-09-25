@@ -11,6 +11,8 @@ import java.util.Locale
 
 class BhimStatementParser : StatementParser {
 
+    override val displayName: String = "BHIM transaction history"
+
     override fun parse(text: String): List<ParsedTransaction> {
         if (text.isBlank()) return emptyList()
         return text.lines()
@@ -20,7 +22,7 @@ class BhimStatementParser : StatementParser {
             .mapNotNull { parseLine(it) }
     }
 
-    fun canHandle(text: String): Boolean {
+    override fun canHandle(text: String): Boolean {
         return text.contains("Transaction History", ignoreCase = true) &&
             (text.contains("Payment ID", ignoreCase = true) ||
                 text.contains("Reference Number", ignoreCase = true))
