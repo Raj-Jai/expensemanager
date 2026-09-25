@@ -27,7 +27,17 @@ object StatementPdfTextExtractor {
     const val MAX_TEXT_CHARS = 5_000_000
 
     const val PASSWORD_REQUIRED = "This PDF is password protected."
-    const val PASSWORD_INCORRECT = "Incorrect password. Please try again."
+
+    /**
+     * SBI does not use one password format for every statement: older statements
+     * are sealed with a different format, or with the mobile number registered
+     * at the time. Saying so beats a bare "incorrect", which otherwise looks
+     * like the app or the user got it wrong.
+     */
+    const val PASSWORD_INCORRECT =
+        "Incorrect password. The password format can differ per statement, and the mobile " +
+            "number used may be the one registered at the time - check this statement's " +
+            "password in the YONO app."
 
     @Volatile
     private var initialized = false
