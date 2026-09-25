@@ -38,6 +38,11 @@ enum class ImportViewMode {
     LIST,
 }
 
+enum class ImportReviewAction {
+    ADDED,
+    SKIPPED,
+}
+
 @Stable
 data class ImportState(
     val isLoading: Boolean = false,
@@ -49,7 +54,7 @@ data class ImportState(
     val categories: List<Category> = emptyList(),
     val acceptedCount: Int = 0,
     val rejectedCount: Int = 0,
-    val lastActionLabel: String? = null,
+    val lastAction: ImportReviewAction? = null,
     val canUndo: Boolean = false,
     val isSaving: Boolean = false,
     val isDone: Boolean = false,
@@ -60,7 +65,14 @@ data class ImportState(
     val topIncomeCategories: List<Category> = emptyList(),
 ) {
     val totalCount: Int get() = drafts.size
+    val readyCount: Int get() = drafts.count { it.isImportable }
+    val unavailableCount: Int get() = totalCount - readyCount
+    val duplicateCount: Int get() = drafts.count { it.isDuplicate && it.isImportable }
+    val validSelectedCount: Int get() = drafts.count { it.isSelected && it.isImportable }
+    val canConfirmSelection: Boolean get() = validSelectedCount > 0 && !isSaving
+    val reviewedCount: Int get() = acceptedCount + rejectedCount
+    val reviewProgress: Float
+        get() = if (totalCount == 0) 0f else (reviewedCount.toFloat() / totalCount).coerceIn(0f, 1f)
     val pendingDrafts: List<ImportDraft> get() = if (currentIndex in drafts.indices) drafts.drop(currentIndex) else emptyList()
     val currentDraft: ImportDraft? get() = drafts.getOrNull(currentIndex)
-    val progressText: String get() = if (drafts.isEmpty()) "0 / 0" else "${(currentIndex + 1).coerceAtMost(drafts.size)} / ${drafts.size}"
 }

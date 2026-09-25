@@ -14,7 +14,7 @@ class BhimStatementParserTest {
 
     private val sampleHeader = """
         Transaction History
-        Customer Mobile Number: ++91XXXXXXXXX  Transaction History from 24/06/2026 to 24/09/2026
+        Customer Mobile Number: +91XXXXXXXXX  Transaction History from 24/06/2026 to 24/09/2026
         Date       Time             Bank Name           Account Number                        Sender                                             Receiver                       Payment ID/Reference Number   Pay/Collect   Amount (in Rs.)    DR/CR        Status
     """.trimIndent()
 
